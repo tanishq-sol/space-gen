@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.next/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+data/frames/
+data/processed/
+data/output/
+data/export/
+data/reconstruction/
+*.mp4
+*.mov
+*.avi
+*.ply
+*.spz
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
