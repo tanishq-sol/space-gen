@@ -20,8 +20,14 @@ class ChatActionPlan(BaseModel):
 
 class GeminiAgent:
     def __init__(self, api_key: str, default_model: str):
-        self.client = genai.Client(api_key=api_key)
+        self.api_key = api_key
         self.model = default_model
+        self.client = None
+        if api_key and api_key not in ("your_key_here", "None", ""):
+            try:
+                self.client = genai.Client(api_key=api_key)
+            except Exception as e:
+                print(f"[WARN] Gemini Client initialization failed: {e}")
     
     async def chat(self, message: str, scene_graph: SceneGraph, 
                    history: list = [], reference_image: bytes | None = None) -> ChatResponse:
@@ -34,7 +40,11 @@ class GeminiAgent:
         contents = [prompt]
         if reference_image:
             contents.append(types.Part.from_bytes(data=reference_image, mime_type="image/jpeg"))
-            contents.append("Please consider this reference image for the requested changes.")
+        if not self.client:
+            return ChatResponse(
+                message=f"I have reviewed your space and noted: '{message}'. To enable active AI spatial modifications and rendering, please set your GEMINI_API_KEY in backend/.env.",
+                actions=[]
+            )
 
         try:
             response = self.client.models.generate_content(
@@ -65,6 +75,8 @@ class GeminiAgent:
     
     async def analyze_scene(self, image_bytes: bytes) -> SceneGraph:
         """Analyze a room image and return a scene graph."""
+        if not self.client:
+            raise ValueError("GEMINI_API_KEY is required to analyze scene captures.")
         try:
             response = self.client.models.generate_content(
                 model=self.model,
@@ -86,6 +98,8 @@ class GeminiAgent:
                                    scene_context: dict,
                                    image_model: str) -> bytes:
         """Generate an edited room image preserving architecture."""
+        if not self.client:
+            raise ValueError("GEMINI_API_KEY is required to generate hero renders.")
         prompt = IMAGE_GENERATION_PROMPT.format(
             room_type=scene_context.get("room_type", "room"),
             target_style=scene_context.get("style", "modern"),
@@ -116,6 +130,8 @@ class GeminiAgent:
     
     async def analyze_reference(self, image_bytes: bytes) -> dict:
         """Analyze a reference furniture image."""
+        if not self.client:
+            raise ValueError("GEMINI_API_KEY is required to analyze reference furniture.")
         try:
             response = self.client.models.generate_content(
                 model=self.model,

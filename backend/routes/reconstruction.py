@@ -1,8 +1,7 @@
-"""Local video ingestion and Gaussian Splatting training jobs.
+"""Local & Cloud video ingestion and Gaussian Splatting training pipeline.
 
-The API intentionally keeps job state in memory for the hackathon. The worker
-uses the checked-in frame processor and Nerfstudio CLI, so it is easy to run
-locally with an NVIDIA GPU while still giving the UI useful progress updates.
+Persists reconstruction jobs and serves 3D Gaussian Splat (.ply, .spz, .ksplat)
+artifacts for real-time browser rendering.
 """
 from __future__ import annotations
 
@@ -17,17 +16,17 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from db.database import db
 
 router = APIRouter(prefix="/api/reconstruction", tags=["reconstruction"])
-ROOT = Path(__file__).resolve().parents[2]
-# Use a space-free path on Windows to prevent COLMAP and FFmpeg CLI path parsing issues
+ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = Path("D:/spacegen_data/reconstruction")
 try:
     DATA_ROOT.mkdir(parents=True, exist_ok=True)
 except Exception:
     DATA_ROOT = ROOT / "data" / "reconstruction"
-
-JOBS: dict[str, dict[str, Any]] = {}
+    DATA_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 # Auto-register known local paths for COLMAP, ffmpeg, and Nerfstudio
@@ -69,12 +68,11 @@ def _find_tool(name: str) -> str | None:
 
 
 def _update(job_id: str, **values: Any) -> None:
-    if job_id in JOBS:
-        JOBS[job_id].update(values)
+    db.update_job(job_id, **values)
 
 
 def _run(command: list[str], cwd: Path, job_id: str, step: str) -> None:
-    """Run a local CLI command and stream the last line into job state."""
+    """Run a CLI command and stream the last line into persistent job state."""
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
@@ -99,34 +97,47 @@ def _run(command: list[str], cwd: Path, job_id: str, step: str) -> None:
         raise RuntimeError(f"{step} failed with exit code {code}")
 
 
-def _worker(job_id: str, video_path: Path, job_dir: Path) -> None:
+def _worker(job_id: str, video_path: Path, job_dir: Path, mode: str = "fast") -> None:
     try:
-        _update(job_id, status="running", progress=12, step="Extracting keyframes", log="Extracting high-density keyframes for COLMAP…")
+        _update(job_id, status="running", progress=12, step="Extracting keyframes", log="Extracting keyframes for reconstruction…")
         frames = job_dir / "frames"
         script = ROOT / "scripts" / "process_video.py"
-        _run([sys.executable, str(script), str(video_path), str(frames), "--fps", "3", "--min-frames", "36", "--quality-threshold", "40"], ROOT, job_id, "Extracting keyframes")
+        fps_val = "2" if mode == "fast" else "3"
+        min_frames = "28" if mode == "fast" else "36"
+        thresh = "45" if mode == "fast" else "40"
+        max_iters = "6000" if mode == "fast" else "15000"
+
+        if script.exists():
+            _run([sys.executable, str(script), str(video_path), str(frames), "--fps", fps_val, "--min-frames", min_frames, "--quality-threshold", thresh], ROOT, job_id, "Extracting keyframes")
 
         ns_process = _find_tool("ns-process-data")
         ns_train = _find_tool("ns-train")
         ns_export = _find_tool("ns-export")
         if not (ns_process and ns_train):
             _update(job_id, status="ready_for_training", progress=38,
-                    step="Frames ready — install Nerfstudio to train",
-                    log="Keyframes are ready. Install Nerfstudio, then restart the job from the terminal.",
+                    step="Frames ready — install Nerfstudio or use Cloud GPU",
+                    log="Keyframes extracted. Ready for Gaussian Splatting training.",
                     frames_dir=str(frames))
             return
 
         processed = job_dir / "processed"
-        output = job_dir / "output"
-        _update(job_id, progress=45, step="Estimating camera poses", log="Running COLMAP feature extraction and bundle adjustment…")
-        _run([ns_process, "images", "--data", str(frames), "--output-dir", str(processed), "--camera-type", "perspective"], ROOT, job_id, "Estimating camera poses")
+        _update(job_id, progress=45, step="Estimating camera poses", log="Running fast sequential feature extraction & bundle adjustment…")
+        _run([
+            ns_process, "images",
+            "--data", str(frames),
+            "--output-dir", str(processed),
+            "--camera-type", "perspective",
+            "--matching-method", "sequential",
+            "--num-downscales", "2",
+        ], ROOT, job_id, "Estimating camera poses")
         
-        _update(job_id, progress=58, step="Training Gaussian Splatting", log="Training high-resolution splatfacto on GPU (15,000 steps)…")
+        output = job_dir / "output"
+        _update(job_id, progress=58, step="Training Gaussian Splatting", log=f"Training splatfacto on GPU ({max_iters} steps)…")
         _run([
             ns_train, "splatfacto",
             "--data", str(processed),
             "--output-dir", str(output),
-            "--max-num-iterations", "15000",
+            "--max-num-iterations", max_iters,
             "--pipeline.model.num-downscales", "1",
             "--viewer.quit-on-train-completion", "True",
         ], ROOT, job_id, "Training Gaussian Splatting")
@@ -143,7 +154,7 @@ def _worker(job_id: str, video_path: Path, job_dir: Path) -> None:
 
 
 @router.post("/jobs", status_code=202)
-async def create_reconstruction_job(video: UploadFile = File(...)):
+async def create_reconstruction_job(video: UploadFile = File(...), mode: str = "fast"):
     allowed = {".mp4", ".mov", ".m4v", ".webm", ".avi"}
     suffix = Path(video.filename or "capture.mp4").suffix.lower()
     if suffix not in allowed:
@@ -154,22 +165,83 @@ async def create_reconstruction_job(video: UploadFile = File(...)):
     video_path = job_dir / f"capture{suffix}"
     with video_path.open("wb") as target:
         shutil.copyfileobj(video.file, target)
-    JOBS[job_id] = {"job_id": job_id, "status": "queued", "progress": 4,
-                    "step": "Queued", "log": "Video uploaded — waiting for the local worker…"}
-    asyncio.create_task(asyncio.to_thread(_worker, job_id, video_path, job_dir))
-    return JOBS[job_id]
+    
+    job_data = {
+        "job_id": job_id, 
+        "status": "queued", 
+        "progress": 4,
+        "step": "Queued", 
+        "log": f"Video uploaded ({mode} mode) — waiting for worker…",
+        "video_path": str(video_path),
+        "mode": mode,
+    }
+    db.save_job(job_id, job_data)
+    asyncio.create_task(asyncio.to_thread(_worker, job_id, video_path, job_dir, mode))
+    return job_data
 
 
-from fastapi.responses import FileResponse
+@router.post("/upload-model", status_code=201)
+async def upload_existing_model(model: UploadFile = File(...)):
+    """Upload an existing 3D Gaussian Splat (.ply, .spz, .splat, .ksplat) or mesh (.glb) to view immediately."""
+    allowed = {".ply", ".spz", ".splat", ".ksplat", ".glb", ".gltf"}
+    suffix = Path(model.filename or "model.ply").suffix.lower()
+    if suffix not in allowed:
+        raise HTTPException(400, f"Unsupported 3D model format. Allowed: {', '.join(allowed)}")
+    
+    job_id = f"import_{uuid.uuid4().hex[:8]}"
+    job_dir = DATA_ROOT / job_id
+    export_dir = job_dir / "export"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    
+    target_filename = "splat.ply" if suffix == ".ply" else f"scene{suffix}"
+    target_path = export_dir / target_filename
+    with target_path.open("wb") as out:
+        shutil.copyfileobj(model.file, out)
+        
+    size_mb = round(target_path.stat().st_size / (1024 * 1024), 1)
+    job_data = {
+        "job_id": job_id,
+        "status": "completed",
+        "progress": 100,
+        "step": "Model ready",
+        "log": f"Imported {model.filename} ({size_mb} MB) successfully.",
+        "scene_path": str(export_dir),
+        "splat_url": f"/api/reconstruction/jobs/{job_id}/model"
+    }
+    db.save_job(job_id, job_data)
+    return job_data
+
+
+@router.get("/models")
+async def list_available_models():
+    """List all available 3D Gaussian Splat models stored on disk."""
+    models = []
+    if DATA_ROOT.exists():
+        job_dirs = sorted([d for d in DATA_ROOT.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
+        for d in job_dirs:
+            export_dir = d / "export"
+            for candidate_name in ["splat.ply", "scene.spz", "scene.ksplat", "point_cloud.ply"]:
+                target_file = export_dir / candidate_name
+                if target_file.exists():
+                    size_mb = round(target_file.stat().st_size / (1024 * 1024), 1)
+                    models.append({
+                        "job_id": d.name,
+                        "filename": candidate_name,
+                        "size_mb": size_mb,
+                        "format": target_file.suffix.replace(".", ""),
+                        "url": f"/api/reconstruction/jobs/{d.name}/model",
+                        "modified": target_file.stat().st_mtime,
+                    })
+                    break
+    return models
 
 
 @router.get("/jobs/latest")
 async def get_latest_reconstruction_job():
     """Get the most recent reconstruction job or check data directory for existing splats."""
-    if JOBS:
-        # Return most recently added job
-        latest_job = list(JOBS.values())[-1]
-        return latest_job
+    job = db.get_latest_job()
+    if job:
+        return job
     
     # Check DATA_ROOT for existing completed jobs
     if DATA_ROOT.exists():
@@ -189,18 +261,17 @@ async def get_latest_reconstruction_job():
     raise HTTPException(404, "No reconstruction jobs found")
 
 
-@router.get("/jobs/{job_id}/model")
+@router.api_route("/jobs/{job_id}/model", methods=["GET", "HEAD"])
 async def get_reconstruction_model(job_id: str):
-    """Serve the exported 3D Gaussian Splat PLY model for a reconstruction job."""
+    """Serve the exported 3D Gaussian Splat PLY/SPZ model for a reconstruction job."""
     job_dir = DATA_ROOT / job_id
     if not job_dir.exists():
-        # Fallback to local ROOT / data / reconstruction if any
         fallback_dir = ROOT / "data" / "reconstruction" / job_id
         if fallback_dir.exists():
             job_dir = fallback_dir
 
     export_dir = job_dir / "export"
-    for filename in ["splat.ply", "point_cloud.ply", "scene.spz"]:
+    for filename in ["splat.ply", "point_cloud.ply", "scene.spz", "scene.ksplat"]:
         candidate = export_dir / filename
         if candidate.exists():
             return FileResponse(
@@ -210,7 +281,6 @@ async def get_reconstruction_model(job_id: str):
                 headers={"Access-Control-Allow-Origin": "*"},
             )
     
-    # Check any .ply file in job directory
     ply_files = list(job_dir.glob("**/*.ply"))
     if ply_files:
         return FileResponse(
@@ -225,19 +295,20 @@ async def get_reconstruction_model(job_id: str):
 
 @router.get("/jobs/{job_id}")
 async def get_reconstruction_job(job_id: str):
-    if job_id not in JOBS:
-        # Check disk
-        job_dir = DATA_ROOT / job_id
-        splat_file = job_dir / "export" / "splat.ply"
-        if splat_file.exists():
-            return {
-                "job_id": job_id,
-                "status": "completed",
-                "progress": 100,
-                "step": "Scene ready",
-                "log": "Gaussian Splatting scene completed.",
-                "scene_path": str(job_dir / "export"),
-                "splat_url": f"/api/reconstruction/jobs/{job_id}/model",
-            }
-        raise HTTPException(404, "Reconstruction job not found")
-    return JOBS[job_id]
+    job = db.get_job(job_id)
+    if job:
+        return job
+
+    job_dir = DATA_ROOT / job_id
+    splat_file = job_dir / "export" / "splat.ply"
+    if splat_file.exists():
+        return {
+            "job_id": job_id,
+            "status": "completed",
+            "progress": 100,
+            "step": "Scene ready",
+            "log": "Gaussian Splatting scene completed.",
+            "scene_path": str(job_dir / "export"),
+            "splat_url": f"/api/reconstruction/jobs/{job_id}/model",
+        }
+    raise HTTPException(404, "Reconstruction job not found")
