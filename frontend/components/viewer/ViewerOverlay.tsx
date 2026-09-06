@@ -105,7 +105,9 @@ export function ViewerOverlay(props: ViewerOverlayProps) {
         <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 glass rounded-lg text-[11px] text-text-secondary z-10">
           <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
           <span>
-            Gaussian Splat · <b className="text-text-primary">{splatCount.toLocaleString()}</b> splats
+            {splatUrl.toLowerCase().includes('.obj') || splatUrl.toLowerCase().includes('.glb') || splatUrl.toLowerCase().includes('.gltf')
+              ? '3D Mesh'
+              : 'Gaussian Splat'} · <b className="text-text-primary">{splatCount.toLocaleString()}</b> {splatUrl.toLowerCase().includes('.obj') || splatUrl.toLowerCase().includes('.glb') ? 'vertices' : 'splats'}
           </span>
         </div>
       )}

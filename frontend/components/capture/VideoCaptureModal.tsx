@@ -122,9 +122,9 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
   const chooseModel = (candidate?: File) => {
     if (!candidate) return
     const name = candidate.name.toLowerCase()
-    const valid = ['.ply', '.spz', '.splat', '.ksplat', '.glb', '.gltf'].some(ext => name.endsWith(ext))
+    const valid = ['.ply', '.spz', '.splat', '.ksplat', '.glb', '.gltf', '.obj'].some(ext => name.endsWith(ext))
     if (!valid) {
-      setModelError('Unsupported format. Please upload .ply, .spz, .splat, .ksplat, or .glb')
+      setModelError('Unsupported format. Please upload .ply, .spz, .splat, .ksplat, .glb, .gltf, or .obj')
       return
     }
     setModelError('')
@@ -146,7 +146,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
     try {
       const result = await api.uploadModel(modelFile)
       if (result.splat_url) {
-        setSplatUrl(result.splat_url)
+        setSplatUrl(api.normalizeModelUrl(result.splat_url) || result.splat_url)
       } else {
         setSplatUrl(api.getReconstructionModelUrl(result.job_id))
       }
@@ -163,7 +163,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
   }
 
   const handleSelectExistingModel = (model: AvailableModel) => {
-    setSplatUrl(model.url)
+    setSplatUrl(api.normalizeModelUrl(model.url) || model.url)
     onClose()
   }
 
@@ -445,7 +445,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                   {modelFile ? modelFile.name : 'Drop existing 3D model or Gaussian Splat'}
                 </span>
                 <span className="mt-1 text-xs text-text-muted">
-                  Supports .ply, .spz (compressed splat), .splat, .ksplat, and .glb
+                  Supports .ply, .spz (compressed splat), .splat, .ksplat, .glb, and .obj
                 </span>
                 {modelFile && (
                   <span className="mt-2 text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">
@@ -456,7 +456,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               <input
                 ref={modelInputRef}
                 type="file"
-                accept=".ply,.spz,.splat,.ksplat,.glb,.gltf"
+                accept=".ply,.spz,.splat,.ksplat,.glb,.gltf,.obj"
                 className="hidden"
                 onChange={(e) => chooseModel(e.target.files?.[0])}
               />

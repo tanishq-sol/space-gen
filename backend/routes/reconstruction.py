@@ -13,7 +13,7 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -183,7 +183,7 @@ async def create_reconstruction_job(video: UploadFile = File(...), mode: str = "
 @router.post("/upload-model", status_code=201)
 async def upload_existing_model(model: UploadFile = File(...)):
     """Upload an existing 3D Gaussian Splat (.ply, .spz, .splat, .ksplat) or mesh (.glb) to view immediately."""
-    allowed = {".ply", ".spz", ".splat", ".ksplat", ".glb", ".gltf"}
+    allowed = {".ply", ".spz", ".splat", ".ksplat", ".glb", ".gltf", ".obj"}
     suffix = Path(model.filename or "model.ply").suffix.lower()
     if suffix not in allowed:
         raise HTTPException(400, f"Unsupported 3D model format. Allowed: {', '.join(allowed)}")
@@ -206,7 +206,7 @@ async def upload_existing_model(model: UploadFile = File(...)):
         "step": "Model ready",
         "log": f"Imported {model.filename} ({size_mb} MB) successfully.",
         "scene_path": str(export_dir),
-        "splat_url": f"/api/reconstruction/jobs/{job_id}/model"
+        "splat_url": f"/api/reconstruction/jobs/{job_id}/model/{target_filename}"
     }
     db.save_job(job_id, job_data)
     return job_data
@@ -214,25 +214,41 @@ async def upload_existing_model(model: UploadFile = File(...)):
 
 @router.get("/models")
 async def list_available_models():
-    """List all available 3D Gaussian Splat models stored on disk."""
+    """List all available 3D Gaussian Splat and mesh models stored on disk."""
     models = []
+    supported_exts = {".ply", ".spz", ".ksplat", ".splat", ".glb", ".gltf", ".obj"}
     if DATA_ROOT.exists():
         job_dirs = sorted([d for d in DATA_ROOT.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
         for d in job_dirs:
             export_dir = d / "export"
-            for candidate_name in ["splat.ply", "scene.spz", "scene.ksplat", "point_cloud.ply"]:
+            if not export_dir.exists():
+                export_dir = d
+
+            found_file = None
+            # Check preferred candidate names first
+            for candidate_name in ["splat.ply", "scene.glb", "scene.spz", "scene.ksplat", "scene.splat", "scene.gltf", "scene.obj", "point_cloud.ply"]:
                 target_file = export_dir / candidate_name
                 if target_file.exists():
-                    size_mb = round(target_file.stat().st_size / (1024 * 1024), 1)
-                    models.append({
-                        "job_id": d.name,
-                        "filename": candidate_name,
-                        "size_mb": size_mb,
-                        "format": target_file.suffix.replace(".", ""),
-                        "url": f"/api/reconstruction/jobs/{d.name}/model",
-                        "modified": target_file.stat().st_mtime,
-                    })
+                    found_file = target_file
                     break
+            
+            # If not found by candidate name, search for any supported 3D file
+            if not found_file and export_dir.exists():
+                for f in export_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in supported_exts:
+                        found_file = f
+                        break
+
+            if found_file:
+                size_mb = round(found_file.stat().st_size / (1024 * 1024), 1)
+                models.append({
+                    "job_id": d.name,
+                    "filename": found_file.name,
+                    "size_mb": size_mb,
+                    "format": found_file.suffix.replace(".", ""),
+                    "url": f"/api/reconstruction/jobs/{d.name}/model/{found_file.name}",
+                    "modified": found_file.stat().st_mtime,
+                })
     return models
 
 
@@ -244,26 +260,38 @@ async def get_latest_reconstruction_job():
         return job
     
     # Check DATA_ROOT for existing completed jobs
+    supported_exts = {".ply", ".spz", ".ksplat", ".splat", ".glb", ".gltf", ".obj"}
     if DATA_ROOT.exists():
         job_dirs = sorted([d for d in DATA_ROOT.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
         for d in job_dirs:
-            splat_file = d / "export" / "splat.ply"
-            if splat_file.exists():
-                return {
-                    "job_id": d.name,
-                    "status": "completed",
-                    "progress": 100,
-                    "step": "Scene ready",
-                    "log": "Gaussian Splatting scene ready.",
-                    "scene_path": str(d / "export"),
-                    "splat_url": f"/api/reconstruction/jobs/{d.name}/model",
-                }
+            export_dir = d / "export"
+            if export_dir.exists():
+                for f in export_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in supported_exts:
+                        return {
+                            "job_id": d.name,
+                            "status": "completed",
+                            "progress": 100,
+                            "step": "Model ready",
+                            "log": f"3D model ({f.name}) ready.",
+                            "scene_path": str(export_dir),
+                            "splat_url": f"/api/reconstruction/jobs/{d.name}/model/{f.name}",
+                        }
     raise HTTPException(404, "No reconstruction jobs found")
 
 
 @router.api_route("/jobs/{job_id}/model", methods=["GET", "HEAD"])
-async def get_reconstruction_model(job_id: str):
-    """Serve the exported 3D Gaussian Splat PLY/SPZ model for a reconstruction job."""
+async def get_reconstruction_model_default(job_id: str):
+    return _resolve_and_serve_model(job_id, None)
+
+
+@router.api_route("/jobs/{job_id}/model/{filename:path}", methods=["GET", "HEAD"])
+async def get_reconstruction_model(job_id: str, filename: str):
+    return _resolve_and_serve_model(job_id, filename)
+
+
+def _resolve_and_serve_model(job_id: str, filename: Optional[str] = None):
+    """Serve the exported 3D Gaussian Splat (.ply, .spz, .splat) or mesh (.glb, .obj) for a reconstruction job."""
     job_dir = DATA_ROOT / job_id
     if not job_dir.exists():
         fallback_dir = ROOT / "data" / "reconstruction" / job_id
@@ -271,26 +299,55 @@ async def get_reconstruction_model(job_id: str):
             job_dir = fallback_dir
 
     export_dir = job_dir / "export"
-    for filename in ["splat.ply", "point_cloud.ply", "scene.spz", "scene.ksplat"]:
-        candidate = export_dir / filename
-        if candidate.exists():
-            return FileResponse(
-                path=candidate,
-                media_type="application/octet-stream",
-                filename=filename,
-                headers={"Access-Control-Allow-Origin": "*"},
-            )
-    
-    ply_files = list(job_dir.glob("**/*.ply"))
-    if ply_files:
-        return FileResponse(
-            path=ply_files[0],
-            media_type="application/octet-stream",
-            filename=ply_files[0].name,
-            headers={"Access-Control-Allow-Origin": "*"},
-        )
-    
-    raise HTTPException(404, f"3D model file (splat.ply) not found for job {job_id}")
+    search_dirs = [export_dir, job_dir]
+
+    # 1. If explicit filename requested, try finding it directly
+    if filename:
+        for sdir in search_dirs:
+            target = sdir / filename
+            if target.exists() and target.is_file():
+                return _create_model_response(target)
+
+    # 2. Check standard candidate names
+    for sdir in search_dirs:
+        for candidate_name in ["splat.ply", "scene.glb", "scene.spz", "scene.ksplat", "scene.splat", "scene.gltf", "scene.obj", "point_cloud.ply"]:
+            candidate = sdir / candidate_name
+            if candidate.exists():
+                return _create_model_response(candidate)
+
+    # 3. Check for any supported 3D file in export or job directory
+    supported_exts = {".ply", ".spz", ".ksplat", ".splat", ".glb", ".gltf", ".obj"}
+    for sdir in search_dirs:
+        if sdir.exists():
+            for f in sdir.iterdir():
+                if f.is_file() and f.suffix.lower() in supported_exts:
+                    return _create_model_response(f)
+
+    raise HTTPException(404, f"3D model file not found for job {job_id}")
+
+
+def _create_model_response(file_path: Path) -> FileResponse:
+    ext = file_path.suffix.lower()
+    media_types = {
+        ".glb": "model/gltf-binary",
+        ".gltf": "model/gltf+json",
+        ".ply": "application/octet-stream",
+        ".spz": "application/octet-stream",
+        ".splat": "application/octet-stream",
+        ".ksplat": "application/octet-stream",
+        ".obj": "text/plain",
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=file_path.name,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Expose-Headers": "Content-Length, Content-Type, Accept-Ranges",
+            "Accept-Ranges": "bytes",
+        },
+    )
 
 
 @router.get("/jobs/{job_id}")

@@ -175,6 +175,17 @@ export const api = {
   },
 
   /**
+   * Ensure any relative model path is properly prefixed with API_BASE
+   */
+  normalizeModelUrl(url: string | null | undefined): string | null {
+    if (!url) return null
+    if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`
+  },
+
+  /**
    * Send a chat message to Gemini AI Spatial Copilot
    */
   async chat(

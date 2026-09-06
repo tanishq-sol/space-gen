@@ -9,9 +9,9 @@ export type QualityTier = 'max' | 'balanced' | 'performance'
  * Auto-detects device capability, monitors FPS, and adjusts quality dynamically.
  */
 export function useQualityManager() {
-  const [tier, setTier] = useState<QualityTier>('balanced')
+  const [tier, setTier] = useState<QualityTier>('max')
   const [fps, setFps] = useState(60)
-  const [autoAdjust, setAutoAdjust] = useState(true)
+  const [autoAdjust, setAutoAdjust] = useState(false)
   const frameCountRef = useRef(0)
   const lastTimeRef = useRef(performance.now())
   const lowFpsCountRef = useRef(0)
