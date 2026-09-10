@@ -327,8 +327,9 @@ export function SparkSplatViewer({
           const blobUrl = URL.createObjectURL(blob)
           activeBlobUrlRef.current = blobUrl
 
+          const alphaThresh = qualityRef.current === 'fast' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
           await dropIn.addSplatScene(blobUrl, {
-            splatAlphaRemovalThreshold: 5,
+            splatAlphaRemovalThreshold: alphaThresh,
             showLoadingUI: false,
             progressiveLoad: true,
             format: isKsplat ? GaussianSplats3D.SceneFormat.KSplat : GaussianSplats3D.SceneFormat.Splat,
@@ -382,14 +383,34 @@ export function SparkSplatViewer({
             const splatBuffer = GaussianSplats3D.PlyParser.parseToUncompressedSplatBuffer(buffer, shDegree)
             if (cancelled) { dropIn.dispose(); return }
 
-            await dropIn.viewer.addSplatBuffers([splatBuffer], [], true, false, false, false)
+            const alphaThresh = qualityRef.current === 'fast' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
+            const splatBufferOptions = [{
+              rotation: [0, 0, 0, 1],
+              position: [0, 0, 0],
+              scale: [1, 1, 1],
+              splatAlphaRemovalThreshold: alphaThresh,
+            }]
+
+            await dropIn.viewer.addSplatBuffers(
+              [splatBuffer],
+              splatBufferOptions,
+              true,  // finalBuild
+              false, // showLoadingUI
+              false, // showLoadingUIForSplatTreeBuild
+              false, // replaceExisting
+              true,  // enableRenderBeforeFirstSort (renders immediately, no freezing at 80%)
+              true   // preserveVisibleRegion
+            )
           } catch (parseErr) {
             console.warn('[SparkSplatViewer] Direct SplatBuffer parse fallback, trying addSplatScene:', parseErr)
             if (cancelled) return
-            await dropIn.addSplatScene(normalizedUrl, {
-              splatAlphaRemovalThreshold: 5,
+            const blob = new Blob([buffer], { type: 'application/octet-stream' })
+            const blobUrl = URL.createObjectURL(blob)
+            activeBlobUrlRef.current = blobUrl
+            await dropIn.addSplatScene(blobUrl, {
+              splatAlphaRemovalThreshold: qualityRef.current === 'fast' ? 5 : 3,
               showLoadingUI: false,
-              progressiveLoad: false,
+              progressiveLoad: true,
               format: GaussianSplats3D.SceneFormat.Ply,
             })
           }

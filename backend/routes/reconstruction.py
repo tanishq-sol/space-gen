@@ -133,14 +133,20 @@ def _worker(job_id: str, video_path: Path, job_dir: Path, mode: str = "fast") ->
         
         output = job_dir / "output"
         _update(job_id, progress=58, step="Training Gaussian Splatting", log=f"Training splatfacto on GPU ({max_iters} steps)…")
-        _run([
+        
+        # Optimized gsplat flags for RTX 3050 6GB: fast, smooth, high-fidelity, no OOM
+        train_cmd = [
             ns_train, "splatfacto",
             "--data", str(processed),
             "--output-dir", str(output),
             "--max-num-iterations", max_iters,
-            "--pipeline.model.num-downscales", "1",
+            "--pipeline.model.num-downscales", "1" if mode == "quality" else "2",
+            "--pipeline.model.sh-degree", "2" if mode == "quality" else "1",
+            "--pipeline.model.cull-alpha-thresh", "0.005",
+            "--pipeline.model.camera-optimizer.mode", "off",
             "--viewer.quit-on-train-completion", "True",
-        ], ROOT, job_id, "Training Gaussian Splatting")
+        ]
+        _run(train_cmd, ROOT, job_id, "Training Gaussian Splatting")
 
         export_dir = job_dir / "export"
         if ns_export:
@@ -148,6 +154,18 @@ def _worker(job_id: str, video_path: Path, job_dir: Path, mode: str = "fast") ->
             if configs:
                 _update(job_id, progress=88, step="Exporting scene", log="Packaging the trained splat for the viewer…")
                 _run([ns_export, "gaussian-splat", "--load-config", str(configs[0]), "--output-dir", str(export_dir)], ROOT, job_id, "Exporting scene")
+                
+                # gsplat compression: Generate ultra-fast streamable .splat file (up to 8x smaller)
+                exported_ply = export_dir / "splat.ply"
+                if exported_ply.exists():
+                    _update(job_id, progress=95, step="Compressing splat", log="Optimizing splat stream for 60-144 FPS web viewing…")
+                    try:
+                        export_script = ROOT / "scripts" / "export_gsplat.py"
+                        if export_script.exists():
+                            subprocess.run([sys.executable, str(export_script), "--input", str(exported_ply), "--output-dir", str(export_dir), "--format", "all"], check=True, timeout=60)
+                    except Exception as e:
+                        print(f"gsplat compression warning: {e}")
+
         _update(job_id, status="completed", progress=100, step="Scene ready", log="Gaussian Splatting scene completed.", scene_path=str(export_dir))
     except Exception as exc:
         _update(job_id, status="failed", step="Reconstruction failed", log=str(exc))
@@ -199,6 +217,19 @@ async def upload_existing_model(model: UploadFile = File(...)):
         shutil.copyfileobj(model.file, out)
         
     size_mb = round(target_path.stat().st_size / (1024 * 1024), 1)
+
+    # Auto-compress with gsplat if uploaded file is a Gaussian Splat PLY
+    splat_url = f"/api/reconstruction/jobs/{job_id}/model/{target_filename}"
+    if suffix == ".ply":
+        try:
+            export_script = ROOT / "scripts" / "export_gsplat.py"
+            if export_script.exists():
+                subprocess.run([sys.executable, str(export_script), "--input", str(target_path), "--output-dir", str(export_dir), "--format", "all"], timeout=30)
+                if (export_dir / "scene.splat").exists():
+                    splat_url = f"/api/reconstruction/jobs/{job_id}/model/scene.splat"
+        except Exception as e:
+            print(f"gsplat auto-compression skipped: {e}")
+
     job_data = {
         "job_id": job_id,
         "status": "completed",
@@ -206,7 +237,7 @@ async def upload_existing_model(model: UploadFile = File(...)):
         "step": "Model ready",
         "log": f"Imported {model.filename} ({size_mb} MB) successfully.",
         "scene_path": str(export_dir),
-        "splat_url": f"/api/reconstruction/jobs/{job_id}/model/{target_filename}"
+        "splat_url": splat_url
     }
     db.save_job(job_id, job_data)
     return job_data
@@ -216,7 +247,7 @@ async def upload_existing_model(model: UploadFile = File(...)):
 async def list_available_models():
     """List all available 3D Gaussian Splat and mesh models stored on disk."""
     models = []
-    supported_exts = {".ply", ".spz", ".ksplat", ".splat", ".glb", ".gltf", ".obj"}
+    supported_exts = {".splat", ".ply", ".spz", ".ksplat", ".glb", ".gltf", ".obj"}
     if DATA_ROOT.exists():
         job_dirs = sorted([d for d in DATA_ROOT.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
         for d in job_dirs:
@@ -225,8 +256,8 @@ async def list_available_models():
                 export_dir = d
 
             found_file = None
-            # Check preferred candidate names first
-            for candidate_name in ["splat.ply", "scene.glb", "scene.spz", "scene.ksplat", "scene.splat", "scene.gltf", "scene.obj", "point_cloud.ply"]:
+            # Check preferred candidate names first (prefer lightweight streamable scene.splat)
+            for candidate_name in ["scene.splat", "splat.ply", "scene.spz", "scene.ksplat", "scene.glb", "scene.gltf", "scene.obj", "point_cloud.ply"]:
                 target_file = export_dir / candidate_name
                 if target_file.exists():
                     found_file = target_file
@@ -308,9 +339,9 @@ def _resolve_and_serve_model(job_id: str, filename: Optional[str] = None):
             if target.exists() and target.is_file():
                 return _create_model_response(target)
 
-    # 2. Check standard candidate names
+    # 2. Check standard candidate names (prefer fast streamable scene.splat)
     for sdir in search_dirs:
-        for candidate_name in ["splat.ply", "scene.glb", "scene.spz", "scene.ksplat", "scene.splat", "scene.gltf", "scene.obj", "point_cloud.ply"]:
+        for candidate_name in ["scene.splat", "splat.ply", "scene.spz", "scene.ksplat", "scene.glb", "scene.gltf", "scene.obj", "point_cloud.ply"]:
             candidate = sdir / candidate_name
             if candidate.exists():
                 return _create_model_response(candidate)
