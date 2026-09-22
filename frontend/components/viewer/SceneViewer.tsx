@@ -3,13 +3,18 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Grid } from '@react-three/drei'
 import { SceneObject } from '@/lib/types'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { useAppStore } from '@/lib/store'
+import { SplatEngine } from './SplatEngine'
 import { SparkSplatViewer } from './SparkSplatViewer'
 import { CameraController, CameraMode } from './CameraController'
 import { useQualityManager } from './QualityManager'
 import { ViewerOverlay } from './ViewerOverlay'
+import { SolidMeshViewer } from './SolidMeshViewer'
+import { ObjectActionBar } from './ObjectActionBar'
+import { ObjectReplacementModal } from './ObjectReplacementModal'
+import { api } from '@/lib/api'
 
 /* ---------- Per-object bounding-box mesh ---------- */
 function SceneObjectMesh({ 
@@ -85,18 +90,105 @@ export function SceneViewer({
   selectedId: string | null
   onSelectObject: (id: string | null) => void 
 }) {
-  const { splatUrl, showSplat, setShowSplat, showBoxes, setShowBoxes } = useAppStore()
+  const { 
+    splatUrl, 
+    showSplat, 
+    setShowSplat, 
+    showBoxes, 
+    setShowBoxes,
+    viewMode,
+    meshManifest,
+    setMeshManifest,
+    setFurnitureCatalog,
+  } = useAppStore()
   
   // Splat loading states
   const [loadProgress, setLoadProgress] = useState<number | null>(null)
   const [splatCount, setSplatCount] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   
-  // Selection and interaction states
+  // Engine routing: start with the spatial engine, fall back to legacy if needed
+  const [useFallbackEngine, setUseFallbackEngine] = useState(false)
+  const [spatialFps, setSpatialFps] = useState(0)
+
+  // Selection, transform gizmo, and interaction states
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [isDraggingGizmo, setIsDraggingGizmo] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit')
   const captureRef = useRef<(() => string | null) | null>(null)
+
+  // Pre-load furniture catalog & mesh manifest
+  useEffect(() => {
+    api.getFurnitureCatalog().then((items) => {
+      if (items && items.length > 0) {
+        setFurnitureCatalog(items)
+      }
+    }).catch(e => console.warn('Could not load furniture catalog:', e))
+  }, [setFurnitureCatalog])
+
+  useEffect(() => {
+    const match = splatUrl?.match(/jobs\/([^\/]+)/)
+    const jobId = match ? match[1] : null
+    if (jobId && !meshManifest) {
+      api.getMeshManifest(jobId).then((m) => {
+        if (m) setMeshManifest(m)
+      }).catch(() => {})
+    }
+  }, [splatUrl, meshManifest, setMeshManifest])
+
+  // Resolve master mesh URL for solid polygon mesh mode
+  const masterMeshUrl = useMemo(() => {
+    if (splatUrl && (splatUrl.endsWith('.glb') || splatUrl.endsWith('.gltf') || splatUrl.endsWith('.obj'))) {
+      return api.normalizeModelUrl(splatUrl) || splatUrl
+    }
+    const match = splatUrl?.match(/jobs\/([^\/]+)/)
+    const jobId = match ? match[1] : '44a1897d1ca1'
+    if (meshManifest?.master_mesh) {
+      return api.normalizeModelUrl(`/api/reconstruction/jobs/${jobId}/mesh/${meshManifest.master_mesh}`) || undefined
+    }
+    return api.normalizeModelUrl(`/api/reconstruction/jobs/${jobId}/mesh/scene_mesh.glb`) || undefined
+  }, [splatUrl, meshManifest])
+
+  // Merged objects list including semantic manifest items and guaranteed primary bed
+  const allObjects: SceneObject[] = useMemo(() => {
+    const existingIds = new Set(objects.map(o => o.entity_id))
+    const list = [...objects]
+    if (meshManifest?.objects) {
+      for (const mObj of meshManifest.objects) {
+        if (!existingIds.has(mObj.entity_id)) {
+          list.push({
+            entity_id: mObj.entity_id,
+            name: mObj.name,
+            category: mObj.category,
+            type: 'furniture',
+            position: mObj.position,
+            dimensions: mObj.dimensions,
+            confidence: 1.0,
+            is_visible: true,
+            editable: true,
+          })
+          existingIds.add(mObj.entity_id)
+        }
+      }
+    }
+    // Guarantee primary bed object exists so user can immediately move/rotate/scale/replace it
+    if (!list.some(o => o.category?.toLowerCase() === 'bed' || o.name?.toLowerCase().includes('bed'))) {
+      list.push({
+        entity_id: 'bed_primary',
+        name: 'King Size Bed',
+        category: 'Bed',
+        type: 'furniture',
+        position: { x: 0, y: 0.45, z: 0 },
+        dimensions: { width_m: 2.05, height_m: 0.95, depth_m: 2.15 },
+        material: { type: 'Fabric', color: '#6366f1', finish: 'Matte' },
+        confidence: 1.0,
+        editable: true,
+        is_visible: true,
+      })
+    }
+    return list
+  }, [objects, meshManifest])
 
   // Dynamic performance and quality management
   const { tier, setTier, fps, trackFrame } = useQualityManager()
@@ -126,7 +218,8 @@ export function SceneViewer({
           setCameraMode('orbit')
           break
         case 'w':
-          setCameraMode('walk')
+          // If in walk mode or no object selected
+          if (cameraMode !== 'orbit') setCameraMode('walk')
           break
         case 'f':
           setCameraMode('fly')
@@ -141,17 +234,74 @@ export function SceneViewer({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [showBoxes, showSplat, splatUrl, setShowBoxes, setShowSplat, handleScreenshot])
+  }, [showBoxes, showSplat, splatUrl, setShowBoxes, setShowSplat, handleScreenshot, cameraMode])
+
+  // Reset fallback engine when URL changes
+  useEffect(() => {
+    setUseFallbackEngine(false)
+  }, [splatUrl])
+
+  // Determine if the spatial engine should be active
+  const useSpatialEngine = viewMode === 'splat' && splatUrl && !useFallbackEngine
 
   return (
-    <div className="w-full h-full relative select-none" onClick={() => onSelectObject(null)}>
+    <div className="w-full h-full relative select-none">
+      {/* 
+        ENGINE 1: SpaceGen Spatial Engine (high-performance 3DGS renderer)
+        Renders in its own WebGL2 canvas, sits on top of the R3F canvas.
+        Only visible when in Splat View mode and the spatial engine is active.
+      */}
+      {useSpatialEngine && (
+        <SplatEngine
+          url={splatUrl!}
+          visible={viewMode === 'splat' && showSplat}
+          className="absolute inset-0 z-10"
+          onProgress={(p) => setLoadProgress(p < 100 ? p : null)}
+          onLoaded={(info) => {
+            setSplatCount(info.splatCount || 0)
+            setLoadProgress(null)
+            setLoadError(null)
+          }}
+          onFpsUpdate={(f) => setSpatialFps(f)}
+          onError={(err) => {
+            if (err.message === 'FALLBACK_REQUIRED') {
+              // Spatial engine cannot parse this format — switch to legacy renderer
+              console.log('[SpaceGen] Spatial engine falling back to legacy renderer for:', splatUrl)
+              setUseFallbackEngine(true)
+              setLoadError(null)
+              setLoadProgress(null)
+            } else if (err.message.startsWith('MESH_FORMAT:')) {
+              // This is a mesh file — it will be handled by the R3F viewer below
+              setUseFallbackEngine(true)
+            } else {
+              setLoadError(err.message)
+              setLoadProgress(null)
+            }
+          }}
+        />
+      )}
+
+      {/* 
+        ENGINE 2: R3F Canvas (Three.js)
+        Handles: Solid Mesh mode, 6-DOF TransformControls, bounding boxes.
+        Also serves as fallback for .splat files the spatial engine cannot parse.
+        Hidden behind the spatial engine canvas when it is active.
+      */}
       <Canvas 
+        onPointerMissed={() => onSelectObject(null)}
         camera={{ position: [0, 1.8, 4.5], fov: 55 }} 
         shadows={false}
+        style={{
+          // Move behind the spatial engine when it's active and visible
+          position: useSpatialEngine ? 'absolute' : 'relative',
+          zIndex: useSpatialEngine ? 0 : 1,
+          opacity: useSpatialEngine ? 0 : 1,
+          pointerEvents: useSpatialEngine ? 'none' : 'auto',
+        }}
         gl={{ 
-          antialias: false, // Spark handles splats with optimal custom shaders
+          antialias: false,
           powerPreference: 'high-performance',
-          preserveDrawingBuffer: true // Required for instantaneous viewport screenshot capture
+          preserveDrawingBuffer: true
         }}
       >
         <color attach="background" args={['#06060C']} />
@@ -169,12 +319,13 @@ export function SceneViewer({
           cellSize={0.5}
         />
         
-        {/* Switchable camera controller (Orbit / Walk / Fly) */}
+        {/* Switchable camera controller with gizmo drag locking */}
         <CameraController 
           mode={cameraMode}
           onModeChange={setCameraMode}
           floorHeight={-1}
           eyeHeight={1.6}
+          isDraggingGizmo={isDraggingGizmo}
         />
 
         <CanvasHelpers 
@@ -182,8 +333,8 @@ export function SceneViewer({
           onFrame={trackFrame}
         />
         
-        {/* 3D Gaussian Splatting Scene via Spark */}
-        {splatUrl && (
+        {/* Legacy Splat Renderer (fallback when spatial engine can't parse the format) */}
+        {viewMode === 'splat' && splatUrl && useFallbackEngine && (
           <SparkSplatViewer
             url={splatUrl}
             visible={showSplat}
@@ -201,10 +352,20 @@ export function SceneViewer({
           />
         )}
 
-        {/* Semantic Bounding Boxes */}
-        {showBoxes && (
+        {/* Mode 2: Solid Watertight Polygon Mesh + 6-DOF Interactive Objects */}
+        {viewMode === 'mesh' && (
+          <SolidMeshViewer
+            meshUrl={masterMeshUrl}
+            objects={allObjects}
+            onSelectObject={onSelectObject}
+            onDragChange={setIsDraggingGizmo}
+          />
+        )}
+
+        {/* Semantic Bounding Boxes (Splat Mode) */}
+        {viewMode === 'splat' && showBoxes && (
           <group>
-            {objects.map(obj => (
+            {allObjects.map(obj => (
               <SceneObjectMesh 
                 key={obj.entity_id} 
                 object={obj} 
@@ -217,6 +378,12 @@ export function SceneViewer({
           </group>
         )}
       </Canvas>
+
+      {/* Floating 6-DOF Action Bar for Selected Object */}
+      <ObjectActionBar />
+
+      {/* Object Replacement Modal (Catalog / Custom Upload / AI Generator) */}
+      <ObjectReplacementModal />
 
       {/* Complete UI Controls and Overlays */}
       <ViewerOverlay
@@ -232,7 +399,7 @@ export function SceneViewer({
         cameraMode={cameraMode}
         onCameraMode={setCameraMode}
         quality={tier}
-        fps={fps}
+        fps={useSpatialEngine ? spatialFps : fps}
         onQualityChange={setTier}
         onScreenshot={handleScreenshot}
         showShortcuts={showShortcuts}

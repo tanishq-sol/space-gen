@@ -20,6 +20,7 @@ export function CameraController({
   eyeHeight = 1.6,
   moveSpeed = 3,
   lookSpeed = 0.8,
+  isDraggingGizmo = false,
 }: {
   mode: CameraMode
   onModeChange: (mode: CameraMode) => void
@@ -27,6 +28,7 @@ export function CameraController({
   eyeHeight?: number
   moveSpeed?: number
   lookSpeed?: number
+  isDraggingGizmo?: boolean
 }) {
   const { camera, gl } = useThree()
   const orbitRef = useRef<any>(null)
@@ -150,6 +152,7 @@ export function CameraController({
         <OrbitControls
           ref={orbitRef}
           makeDefault
+          enabled={!isDraggingGizmo}
           enableDamping
           dampingFactor={0.05}
           rotateSpeed={lookSpeed}

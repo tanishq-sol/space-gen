@@ -97,6 +97,19 @@
       "is_visible": true
     },
     {
+      "entity_id": "bed_primary",
+      "type": "furniture",
+      "category": "bed",
+      "name": "King Size Bed",
+      "position": {"x": 0.0, "y": 0.45, "z": 0.0},
+      "dimensions": {"width_m": 2.05, "depth_m": 2.15, "height_m": 0.95},
+      "material": {"type": "fabric", "color": "charcoal gray", "finish": "textured linen"},
+      "style": "modern luxury",
+      "confidence": 0.98,
+      "editable": true,
+      "is_visible": true
+    },
+    {
       "entity_id": "coffee_table_01",
       "type": "furniture",
       "category": "coffee_table",

@@ -1,4 +1,4 @@
-import { ReconstructionJob, SceneGraph, SceneObject } from './types'
+import { ReconstructionJob, SceneGraph, SceneObject, FurnitureItem, MeshManifest } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -50,6 +50,18 @@ export const api = {
             dimensions: { width_m: 1.2, height_m: 0.4, depth_m: 0.6 },
             material: { type: 'Walnut Wood', color: '#5C4033', finish: 'Polished' },
             confidence: 0.92,
+            editable: true,
+            is_visible: true,
+          },
+          {
+            entity_id: 'bed_primary',
+            type: 'furniture',
+            category: 'Bed',
+            name: 'King Size Bed',
+            position: { x: 0, y: 0.45, z: 0 },
+            dimensions: { width_m: 2.05, height_m: 0.95, depth_m: 2.15 },
+            material: { type: 'Fabric', color: '#6366f1', finish: 'Matte' },
+            confidence: 1.0,
             editable: true,
             is_visible: true,
           },
@@ -183,6 +195,65 @@ export const api = {
       return url
     }
     return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`
+  },
+
+  /**
+   * Convert Gaussian Splat to editable solid polygon mesh (.glb)
+   */
+  async convertToMesh(jobId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/reconstruction/jobs/${encodeURIComponent(jobId)}/convert-to-mesh`, {
+      method: 'POST',
+    })
+    if (!res.ok) {
+      throw new ApiError(`Mesh conversion failed: ${await res.text()}`, res.status)
+    }
+    return res.json()
+  },
+
+  /**
+   * Fetch mesh manifest for a job
+   */
+  async getMeshManifest(jobId: string): Promise<MeshManifest> {
+    const res = await fetch(`${API_BASE}/api/reconstruction/jobs/${encodeURIComponent(jobId)}/mesh`)
+    if (!res.ok) {
+      throw new ApiError(`Failed to fetch mesh manifest: ${await res.text()}`, res.status)
+    }
+    return res.json()
+  },
+
+  /**
+   * Fetch 3D furniture catalog models
+   */
+  async getFurnitureCatalog(): Promise<FurnitureItem[]> {
+    const res = await fetch(`${API_BASE}/api/reconstruction/furniture-catalog`)
+    if (!res.ok) {
+      throw new ApiError(`Failed to fetch furniture catalog: ${await res.text()}`, res.status)
+    }
+    const data = await res.json()
+    const items = Array.isArray(data) ? data : (data.items || [])
+    return items.map((item: any) => ({
+      ...item,
+      url: `${API_BASE}${item.url}`,
+    }))
+  },
+
+  /**
+   * Export modified scene as consolidated .glb
+   */
+  async exportModifiedScene(jobId: string, transforms: any, replacements: any): Promise<{ url: string; filename: string }> {
+    const res = await fetch(`${API_BASE}/api/reconstruction/jobs/${encodeURIComponent(jobId)}/export-modified-scene`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transforms, replacements }),
+    })
+    if (!res.ok) {
+      throw new ApiError(`Export scene failed: ${await res.text()}`, res.status)
+    }
+    const data = await res.json()
+    return {
+      ...data,
+      url: `${API_BASE}${data.url}`,
+    }
   },
 
   /**

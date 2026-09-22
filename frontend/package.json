@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@manycore/aholo-viewer": "^1.8.1",
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@radix-ui/react-slider": "^1.4.7",
     "@react-three/drei": "^9.122.0",

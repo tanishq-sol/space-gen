@@ -122,14 +122,42 @@ export function SparkSplatViewer({
       try {
         onProgressRef.current?.(20)
 
-        // Download / read the model into memory
+        // Download / read the model into memory with live chunk progress
         const response = await fetch(normalizedUrl)
         if (!response.ok) {
           throw new Error(`Failed to download model (HTTP ${response.status}: ${response.statusText})`)
         }
-        const buffer = await response.arrayBuffer()
+        
+        const contentLength = +(response.headers.get('Content-Length') || 0)
+        let buffer: ArrayBuffer
+
+        if (contentLength && response.body) {
+          const reader = response.body.getReader()
+          const chunks: Uint8Array[] = []
+          let received = 0
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            if (value) {
+              chunks.push(value)
+              received += value.length
+              const pct = Math.min(80, Math.round((received / contentLength) * 80))
+              onProgressRef.current?.(pct)
+            }
+          }
+          const allBytes = new Uint8Array(received)
+          let offset = 0
+          for (const chunk of chunks) {
+            allBytes.set(chunk, offset)
+            offset += chunk.length
+          }
+          buffer = allBytes.buffer
+        } else {
+          buffer = await response.arrayBuffer()
+        }
+
         if (cancelled) return
-        onProgressRef.current?.(50)
+        onProgressRef.current?.(85)
 
         // Inspect header & magic bytes directly from in-memory buffer
         const lowerUrl = normalizedUrl.toLowerCase()
@@ -138,20 +166,21 @@ export function SparkSplatViewer({
         const headerText = new TextDecoder().decode(buffer.slice(0, 65536))
 
         // 1. Binary glTF (.glb) — Magic: 'glTF' (0x67 0x6c 0x54 0x46)
-        const isGlb = (uint8[0] === 0x67 && uint8[1] === 0x6c && uint8[2] === 0x54 && uint8[3] === 0x46) || lowerUrl.endsWith('.glb')
+        const isGlb = (uint8[0] === 0x67 && uint8[1] === 0x6c && uint8[2] === 0x54 && uint8[3] === 0x46) || lowerUrl.includes('.glb')
 
         // 2. JSON glTF (.gltf)
-        const isGltf = (headerText.trim().startsWith('{') && headerText.includes('"asset"')) || lowerUrl.endsWith('.gltf')
+        const isGltf = (headerText.trim().startsWith('{') && headerText.includes('"asset"')) || lowerUrl.includes('.gltf')
 
         // 3. Wavefront OBJ (.obj)
-        const isObj = lowerUrl.endsWith('.obj') || (!isGlb && !isGltf && headerText.startsWith('#') && (headerText.includes('v ') || headerText.includes('vn ')))
+        const isObj = lowerUrl.includes('.obj') || (!isGlb && !isGltf && headerText.startsWith('#') && (headerText.includes('v ') || headerText.includes('vn ')))
 
         // 4. Compressed SPZ Gaussian Splat
-        const isSpz = magic4.startsWith('SPZ') || (uint8[0] === 0x1f && uint8[1] === 0x8b) || lowerUrl.endsWith('.spz')
+        const isSpz = magic4.startsWith('SPZ') || (uint8[0] === 0x1f && uint8[1] === 0x8b) || lowerUrl.includes('.spz')
 
-        // 5. KSPLAT / SPLAT
-        const isKsplat = lowerUrl.endsWith('.ksplat')
-        const isSplat = lowerUrl.endsWith('.splat')
+        // 5. KSPLAT / SPLAT / PLY
+        const isKsplat = lowerUrl.includes('.ksplat')
+        const isPly = magic4.startsWith('ply') || lowerUrl.includes('.ply')
+        const isSplat = lowerUrl.includes('.splat') || (!isGlb && !isGltf && !isObj && !isSpz && !isKsplat && !isPly && buffer.byteLength > 0 && buffer.byteLength % 32 === 0)
 
         /* ========================================================== */
         /* 1. GLB / GLTF 3D MESH (Three.js GLTFLoader)                */
@@ -327,7 +356,7 @@ export function SparkSplatViewer({
           const blobUrl = URL.createObjectURL(blob)
           activeBlobUrlRef.current = blobUrl
 
-          const alphaThresh = qualityRef.current === 'fast' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
+          const alphaThresh = qualityRef.current === 'performance' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
           await dropIn.addSplatScene(blobUrl, {
             splatAlphaRemovalThreshold: alphaThresh,
             showLoadingUI: false,
@@ -383,7 +412,7 @@ export function SparkSplatViewer({
             const splatBuffer = GaussianSplats3D.PlyParser.parseToUncompressedSplatBuffer(buffer, shDegree)
             if (cancelled) { dropIn.dispose(); return }
 
-            const alphaThresh = qualityRef.current === 'fast' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
+            const alphaThresh = qualityRef.current === 'performance' ? 5 : qualityRef.current === 'balanced' ? 3 : 1
             const splatBufferOptions = [{
               rotation: [0, 0, 0, 1],
               position: [0, 0, 0],
@@ -408,7 +437,7 @@ export function SparkSplatViewer({
             const blobUrl = URL.createObjectURL(blob)
             activeBlobUrlRef.current = blobUrl
             await dropIn.addSplatScene(blobUrl, {
-              splatAlphaRemovalThreshold: qualityRef.current === 'fast' ? 5 : 3,
+              splatAlphaRemovalThreshold: qualityRef.current === 'performance' ? 5 : 3,
               showLoadingUI: false,
               progressiveLoad: true,
               format: GaussianSplats3D.SceneFormat.Ply,

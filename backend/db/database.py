@@ -77,6 +77,9 @@ class LocalDatabase:
     def get_latest_job(self) -> Optional[Dict[str, Any]]:
         if not self._jobs:
             return None
+        completed = [j for j in self._jobs.values() if j.get("status") == "completed"]
+        if completed:
+            return completed[-1]
         return list(self._jobs.values())[-1]
 
     # Scene Operations

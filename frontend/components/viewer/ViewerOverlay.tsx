@@ -4,8 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Loader2, Sparkles, Layers, Camera, Keyboard, 
   Footprints, Navigation, Eye, Gauge, ChevronUp,
-  AlertTriangle, X
+  AlertTriangle, X, Box, Wand2, Download, Check
 } from 'lucide-react'
+import { useState } from 'react'
+import { useAppStore } from '@/lib/store'
+import { api } from '@/lib/api'
 import { CameraMode } from './CameraController'
 import { QualityTier } from './QualityManager'
 
@@ -50,10 +53,155 @@ export function ViewerOverlay(props: ViewerOverlayProps) {
     showShortcuts, onToggleShortcuts,
   } = props
 
+  const {
+    viewMode,
+    setViewMode,
+    isConvertingMesh,
+    setIsConvertingMesh,
+    convertProgress,
+    setConvertProgress,
+    meshManifest,
+    setMeshManifest,
+    objectTransforms,
+    objectReplacements,
+  } = useAppStore()
+
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleConvertToMesh = async () => {
+    const match = splatUrl?.match(/jobs\/([^\/]+)/)
+    const jobId = match ? match[1] : '44a1897d1ca1'
+    setIsConvertingMesh(true)
+    setConvertProgress(25)
+    try {
+      const res = await api.convertToMesh(jobId)
+      setConvertProgress(90)
+      if (res.manifest) {
+        setMeshManifest(res.manifest)
+      }
+      setViewMode('mesh')
+    } catch (e: any) {
+      console.error('Mesh conversion failed:', e)
+      alert(`Mesh conversion error: ${e.message}`)
+    } finally {
+      setIsConvertingMesh(false)
+      setConvertProgress(null)
+    }
+  }
+
+  const handleExportScene = async () => {
+    const match = splatUrl?.match(/jobs\/([^\/]+)/)
+    const jobId = match ? match[1] : '44a1897d1ca1'
+    setIsExporting(true)
+    try {
+      const res = await api.exportModifiedScene(jobId, objectTransforms, objectReplacements)
+      if (res.url) {
+        const a = document.createElement('a')
+        a.href = res.url
+        a.download = res.filename || 'modified_scene.glb'
+        a.click()
+      }
+    } catch (e: any) {
+      console.error('Export failed:', e)
+      alert(`Scene export error: ${e.message}`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const fpsColor = fps >= 50 ? 'text-emerald-400' : fps >= 30 ? 'text-yellow-400' : 'text-red-400'
 
   return (
     <>
+      {/* ---- Top Center: Mode Switch & Mesh Actions ---- */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
+        {/* Dual Mode Switcher Pill */}
+        <div className="flex items-center gap-1 p-1 glass rounded-2xl border border-border/60 shadow-xl backdrop-blur-xl">
+          <button
+            onClick={() => setViewMode('splat')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              viewMode === 'splat'
+                ? 'bg-accent text-white shadow-md shadow-accent/30'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+            }`}
+          >
+            <Sparkles size={13} />
+            <span>Splat View</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('mesh')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              viewMode === 'mesh'
+                ? 'bg-accent text-white shadow-md shadow-accent/30'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+            }`}
+          >
+            <Box size={13} />
+            <span>Solid Mesh</span>
+          </button>
+        </div>
+
+        {/* 1-Click Convert to Mesh Action Button */}
+        {viewMode === 'splat' && (
+          <button
+            onClick={handleConvertToMesh}
+            disabled={isConvertingMesh}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 backdrop-blur-xl transition-all shadow-lg active:scale-95 disabled:opacity-50"
+          >
+            {isConvertingMesh ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-amber-400" />
+                <span>Converting Mesh...</span>
+              </>
+            ) : (
+              <>
+                <Wand2 size={13} className="text-amber-400" />
+                <span>Convert to Solid Mesh</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Export Modified Scene (.glb) Action Button */}
+        {viewMode === 'mesh' && (
+          <button
+            onClick={handleExportScene}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/40 text-emerald-300 backdrop-blur-xl transition-all shadow-lg active:scale-95 disabled:opacity-50"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-emerald-400" />
+                <span>Exporting Scene...</span>
+              </>
+            ) : (
+              <>
+                <Download size={13} className="text-emerald-400" />
+                <span>Export Scene (.glb)</span>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* ---- Mesh Conversion Active Progress Banner ---- */}
+      <AnimatePresence>
+        {isConvertingMesh && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-20"
+          >
+            <div className="flex items-center gap-3 px-5 py-2.5 glass rounded-full shadow-2xl border border-amber-500/30">
+              <Loader2 size={14} className="animate-spin text-amber-400" />
+              <span className="text-xs font-medium text-amber-200">Reconstructing Watertight Solid Mesh...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ---- Loading progress ---- */}
       <AnimatePresence>
         {loadProgress !== null && (
@@ -61,7 +209,7 @@ export function ViewerOverlay(props: ViewerOverlayProps) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-10"
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-10"
           >
             <div className="flex items-center gap-3 px-5 py-2.5 glass rounded-full shadow-2xl">
               <Loader2 size={14} className="animate-spin text-accent" />
@@ -259,6 +407,14 @@ export function ViewerOverlay(props: ViewerOverlayProps) {
                 <ShortcutRow keys="Space" desc="Move up" />
                 <ShortcutRow keys="Shift" desc="Move down" />
                 <ShortcutRow keys="Scroll" desc="Adjust speed" />
+              </ShortcutSection>
+              <ShortcutSection title="3D Object Editing (Mesh Mode)">
+                <ShortcutRow keys="Click" desc="Select object (e.g. Bed, Sofa)" />
+                <ShortcutRow keys="W" desc="Translate / Move along X, Y, Z" />
+                <ShortcutRow keys="E" desc="Rotate object" />
+                <ShortcutRow keys="R" desc="Scale / Resize" />
+                <ShortcutRow keys="ESC" desc="Deselect object" />
+                <ShortcutRow keys="DEL" desc="Delete selected object" />
               </ShortcutSection>
               <ShortcutSection title="Actions">
                 <ShortcutRow keys="C" desc="Capture screenshot" />

@@ -27,9 +27,9 @@ export interface SceneObject {
   dimensions?: Dimensions
   material?: Material
   style?: string
-  confidence: number
-  editable: boolean
-  is_visible: boolean
+  confidence?: number
+  editable?: boolean
+  is_visible?: boolean
   replaced_by?: string
 }
 
@@ -60,4 +60,45 @@ export interface ReconstructionJob {
   frames_dir?: string
   scene_path?: string
   splat_url?: string
+}
+
+export interface ObjectTransform {
+  position: [number, number, number]
+  rotation: [number, number, number]
+  scale: [number, number, number]
+}
+
+export interface FurnitureItem {
+  id: string
+  name: string
+  category: string
+  style: string
+  dimensions: Dimensions
+  color_preview: string
+  description: string
+  filename: string
+  url: string
+}
+
+export interface MeshManifest {
+  master_mesh: string
+  floor_infill: string
+  bounds: {
+    min: [number, number, number]
+    max: [number, number, number]
+    center: [number, number, number]
+    floor_y: number
+  }
+  total_vertices: number
+  total_triangles: number
+  objects: Array<{
+    entity_id: string
+    name: string
+    category: string
+    position: Position
+    dimensions: Dimensions
+    mesh_file: string
+    triangles: number
+    vertices: number
+  }>
 }

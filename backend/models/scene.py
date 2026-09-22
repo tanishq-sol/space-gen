@@ -15,7 +15,7 @@ class Position(BaseModel):
 class Dimensions(BaseModel):
     width_m: float
     depth_m: Optional[float] = None
-    height_m: float
+    height_m: Optional[float] = None
 
 class SceneObject(BaseModel):
     entity_id: str  # e.g., "sofa_01"

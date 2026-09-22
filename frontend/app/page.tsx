@@ -17,11 +17,20 @@ export default function EditorPage() {
       setScene(data as any)
     })
 
-    // Check if there is an existing/latest completed Gaussian Splat
-    api.getLatestReconstructionJob().then(job => {
-      if (job && job.status === 'completed') {
-        setSplatUrl(api.getReconstructionModelUrl(job.job_id))
+    // Prioritize loading Victorian splat model requested by user
+    api.listAvailableModels().then(models => {
+      const victoria = models.find(m => m.job_id === 'import_victoria')
+      if (victoria) {
+        setSplatUrl(api.normalizeModelUrl(victoria.url) || victoria.url)
+      } else {
+        api.getLatestReconstructionJob().then(job => {
+          if (job && job.status === 'completed') {
+            setSplatUrl(api.getReconstructionModelUrl(job.job_id))
+          }
+        })
       }
+    }).catch(() => {
+      setSplatUrl(api.normalizeModelUrl('/api/reconstruction/jobs/import_victoria/model/scene.splat'))
     })
   }, [setScene, setSplatUrl])
 

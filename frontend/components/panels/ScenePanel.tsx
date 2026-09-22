@@ -108,7 +108,7 @@ export function ScenePanel() {
                             style={{ backgroundColor: obj.material.color }}
                           />
                         )}
-                        {obj.confidence < 0.8 && (
+                        {obj.confidence !== undefined && obj.confidence < 0.8 && (
                           <span className="text-[9px] text-warning">⚠</span>
                         )}
                       </motion.button>
@@ -158,22 +158,24 @@ function ObjectDetails({ object }: { object: SceneObject }) {
       </div>
 
       {/* Confidence bar */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="text-text-muted">AI Confidence</span>
-          <span className={`font-mono font-medium ${object.confidence >= 0.9 ? 'text-success' : object.confidence >= 0.7 ? 'text-warning' : 'text-error'}`}>
-            {Math.round(object.confidence * 100)}%
-          </span>
+      {object.confidence !== undefined && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-text-muted">AI Confidence</span>
+            <span className={`font-mono font-medium ${object.confidence >= 0.9 ? 'text-success' : object.confidence >= 0.7 ? 'text-warning' : 'text-error'}`}>
+              {Math.round(object.confidence * 100)}%
+            </span>
+          </div>
+          <div className="w-full h-1 bg-surface-elevated rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all ${
+                object.confidence >= 0.9 ? 'bg-success' : object.confidence >= 0.7 ? 'bg-warning' : 'bg-error'
+              }`}
+              style={{ width: `${object.confidence * 100}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full h-1 bg-surface-elevated rounded-full overflow-hidden">
-          <div 
-            className={`h-full rounded-full transition-all ${
-              object.confidence >= 0.9 ? 'bg-success' : object.confidence >= 0.7 ? 'bg-warning' : 'bg-error'
-            }`}
-            style={{ width: `${object.confidence * 100}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Properties */}
       <div className="space-y-1.5 text-[11px]">

@@ -285,29 +285,32 @@ async def list_available_models():
 
 @router.get("/jobs/latest")
 async def get_latest_reconstruction_job():
-    """Get the most recent reconstruction job or check data directory for existing splats."""
+    """Get the most recent completed reconstruction job or check data directory for existing splats."""
     job = db.get_latest_job()
-    if job:
+    if job and job.get("status") == "completed":
         return job
     
     # Check DATA_ROOT for existing completed jobs
-    supported_exts = {".ply", ".spz", ".ksplat", ".splat", ".glb", ".gltf", ".obj"}
+    supported_exts = {".splat", ".ply", ".spz", ".ksplat", ".glb", ".gltf", ".obj"}
     if DATA_ROOT.exists():
         job_dirs = sorted([d for d in DATA_ROOT.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
         for d in job_dirs:
-            export_dir = d / "export"
-            if export_dir.exists():
-                for f in export_dir.iterdir():
-                    if f.is_file() and f.suffix.lower() in supported_exts:
-                        return {
-                            "job_id": d.name,
-                            "status": "completed",
-                            "progress": 100,
-                            "step": "Model ready",
-                            "log": f"3D model ({f.name}) ready.",
-                            "scene_path": str(export_dir),
-                            "splat_url": f"/api/reconstruction/jobs/{d.name}/model/{f.name}",
-                        }
+            for sdir in [d / "export", d]:
+                if sdir.exists():
+                    for candidate in ["scene.splat", "splat.ply", "scene_mesh.glb", "scene.spz", "scene.obj"]:
+                        cf = sdir / candidate
+                        if cf.exists() and cf.is_file():
+                            return {
+                                "job_id": d.name,
+                                "status": "completed",
+                                "progress": 100,
+                                "step": "Model ready",
+                                "log": f"3D model ({cf.name}) ready.",
+                                "scene_path": str(sdir),
+                                "splat_url": f"/api/reconstruction/jobs/{d.name}/model/{cf.name}",
+                            }
+    if job:
+        return job
     raise HTTPException(404, "No reconstruction jobs found")
 
 
@@ -400,3 +403,122 @@ async def get_reconstruction_job(job_id: str):
             "splat_url": f"/api/reconstruction/jobs/{job_id}/model",
         }
     raise HTTPException(404, "Reconstruction job not found")
+
+
+CATALOG_DIR = ROOT / "data" / "furniture_catalog"
+
+
+@router.post("/jobs/{job_id}/convert-to-mesh")
+async def convert_job_to_mesh(job_id: str):
+    """Convert an existing Gaussian Splat job into an editable solid polygon mesh (.glb) with segmented objects."""
+    from services.mesh_extractor import convert_splat_to_mesh
+    job_dir = DATA_ROOT / job_id
+    if not job_dir.exists():
+        fallback = ROOT / "data" / "reconstruction" / job_id
+        if fallback.exists():
+            job_dir = fallback
+        else:
+            raise HTTPException(404, f"Job {job_id} not found")
+
+    export_dir = job_dir / "export"
+    ply_file = export_dir / "splat.ply"
+    if not ply_file.exists():
+        ply_cands = list(export_dir.glob("*.ply")) or list(job_dir.glob("*.ply"))
+        if ply_cands:
+            ply_file = ply_cands[0]
+        else:
+            raise HTTPException(400, "No splat PLY file found to convert into mesh.")
+
+    mesh_dir = job_dir / "mesh"
+    try:
+        manifest = await asyncio.to_thread(convert_splat_to_mesh, ply_file, mesh_dir)
+        return {
+            "status": "completed",
+            "job_id": job_id,
+            "mesh_url": f"/api/reconstruction/jobs/{job_id}/mesh/scene_mesh.glb",
+            "floor_infill_url": f"/api/reconstruction/jobs/{job_id}/mesh/floor_infill.glb",
+            "manifest": manifest,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Mesh conversion failed: {str(e)}")
+
+
+@router.api_route("/jobs/{job_id}/mesh", methods=["GET", "HEAD"])
+async def get_job_mesh_manifest(job_id: str):
+    """Get the mesh manifest or default scene_mesh.glb for a job."""
+    job_dir = DATA_ROOT / job_id
+    mesh_dir = job_dir / "mesh"
+    manifest_file = mesh_dir / "mesh_manifest.json"
+    if manifest_file.exists():
+        with manifest_file.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    mesh_file = mesh_dir / "scene_mesh.glb"
+    if mesh_file.exists():
+        return _create_model_response(mesh_file)
+    raise HTTPException(404, "No converted mesh found for this job. Call /convert-to-mesh first.")
+
+
+@router.api_route("/jobs/{job_id}/mesh/{filename:path}", methods=["GET", "HEAD"])
+async def get_job_mesh_file(job_id: str, filename: str):
+    """Serve a specific sub-mesh or scene_mesh.glb for a job."""
+    job_dir = DATA_ROOT / job_id
+    mesh_dir = job_dir / "mesh"
+    target = mesh_dir / filename
+    if target.exists() and target.is_file():
+        return _create_model_response(target)
+    raise HTTPException(404, f"Mesh file {filename} not found.")
+
+
+@router.get("/furniture-catalog")
+async def get_furniture_catalog():
+    """List all available replacement 3D furniture models from the curated catalog."""
+    catalog_json = CATALOG_DIR / "catalog.json"
+    if catalog_json.exists():
+        with catalog_json.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+@router.api_route("/furniture-catalog/{filename:path}", methods=["GET", "HEAD"])
+async def get_furniture_catalog_model(filename: str):
+    """Serve a GLB 3D model from the furniture catalog."""
+    target = CATALOG_DIR / filename
+    if target.exists() and target.is_file():
+        return _create_model_response(target)
+    raise HTTPException(404, f"Furniture model {filename} not found.")
+
+
+@router.post("/jobs/{job_id}/export-modified-scene")
+async def export_modified_scene(job_id: str, payload: dict):
+    """
+    Accepts client overrides (moved objects, rotations, scales, replacements)
+    and combines them into a final consolidated downloadable GLB.
+    """
+    import trimesh
+    job_dir = DATA_ROOT / job_id
+    mesh_dir = job_dir / "mesh"
+    master_mesh_path = mesh_dir / "scene_mesh.glb"
+    if not master_mesh_path.exists():
+        raise HTTPException(400, "Mesh scene not available. Convert scene to mesh first.")
+
+    scene = trimesh.load(str(master_mesh_path), force="scene")
+    overrides = payload.get("overrides", {})
+
+    for entity_id, trans in overrides.items():
+        replacement_url = trans.get("replacement_url")
+        if replacement_url:
+            fname = Path(replacement_url).name
+            rep_path = CATALOG_DIR / fname
+            if rep_path.exists():
+                rep_scene = trimesh.load(str(rep_path), force="scene")
+                pos = trans.get("position", [0, 0, 0])
+                rep_scene.apply_translation(pos)
+                scene.add_geometry(rep_scene.dump())
+
+    out_file = mesh_dir / "modified_scene.glb"
+    out_file.write_bytes(scene.export(file_type="glb"))
+    return {
+        "status": "success",
+        "url": f"/api/reconstruction/jobs/{job_id}/mesh/modified_scene.glb",
+        "size_mb": round(out_file.stat().st_size / (1024 * 1024), 2)
+    }
