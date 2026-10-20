@@ -401,6 +401,12 @@ export const SplatBackgroundCanvas: React.FC<SplatBackgroundCanvasProps> = ({
       return {
         hasMesh: !!mesh,
         loadedSplats: loadedCountRef.current,
+        camera: cameraRef.current && {
+          position: cameraRef.current.position.toArray(),
+          quaternion: cameraRef.current.quaternion.toArray(),
+          near: cameraRef.current.near,
+          far: cameraRef.current.far,
+        },
         globalEdits,
         edits: (mesh?.edits ?? []).map((edit: SplatEditType) => ({
           softEdge: edit.softEdge,
