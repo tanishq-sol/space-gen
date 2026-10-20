@@ -159,6 +159,37 @@ describe('T08: Splat Masking & Replacement Integration Unit Tests', () => {
     }
   });
 
+  it('replaces without creating a scan or mask when the project has no scan', () => {
+    useScene.setState({
+      nodes: {
+        item_chair_2: {
+          id: 'item_chair_2' as any,
+          type: 'item',
+          name: 'Chair',
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+          asset: { id: 'a', name: 'Chair', category: 'chair', src: '/a.glb', dimensions: [0.5, 0.8, 0.5] },
+          metadata: {},
+        } as any,
+      },
+    } as any);
+
+    const { replacedNode, maskRegion } = replaceItemWithMask(useScene.getState().nodes['item_chair_2' as any] as any, {
+      id: 'b',
+      name: 'New Chair',
+      category: 'chair',
+      src: '/b.glb',
+      dimensions: [0.6, 0.9, 0.6],
+    });
+
+    expect(maskRegion).toBeNull();
+    expect(replacedNode.metadata?.maskRegionId).toBeUndefined();
+    const nodes = Object.values(useScene.getState().nodes) as any[];
+    expect(nodes.filter((n) => n.type === 'scan')).toHaveLength(0);
+    expect((useScene.getState().nodes as any)['item_chair_2'].asset.name).toBe('New Chair');
+  });
+
   it('toggles ghost mode between masked (0% opacity) and ghost (25% opacity)', () => {
     const scene = useScene.getState();
     scene.applyNodeChanges({
