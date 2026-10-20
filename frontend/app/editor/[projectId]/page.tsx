@@ -9,6 +9,9 @@ import { ScenePanel } from '@/components/panels/ScenePanel';
 import { ChatPanel } from '@/components/panels/ChatPanel';
 import { EditorLayout } from '@/components/layout/EditorLayout';
 import { useSpaceGenStore } from '@/lib/store';
+import { InterpretationReviewPanel, ReviewToggleButton } from '@/components/panels/InterpretationReviewPanel';
+import { convertInterpretationToNodes } from '@/lib/pascal/scanConverter';
+import { deriveInterpretation, listReviewEntries } from '@/lib/interpretation/review';
 import { loadProject, saveProject, type ProjectDocument } from '@/lib/projects/api';
 
 const SceneViewer = dynamic(() => import('@/components/viewer/SceneViewer'), { ssr: false });
@@ -40,6 +43,12 @@ export default function ProjectEditorPage() {
         applySceneSnapshot(doc.manifest.sceneSnapshot as Parameters<typeof applySceneSnapshot>[0], { origin: 'load' });
       } else {
         useScene.getState().clearScene();
+        const { interpretation, scan, maskRegions } = doc.manifest;
+        if (interpretation.walls.length || interpretation.detections.length) {
+          convertInterpretationToNodes(interpretation, { scan, maskRegions });
+          // Loading is not an edit: keep the converted room out of the undo history.
+          (useScene as any).temporal?.getState?.().clear?.();
+        }
       }
       const scene = useScene.getState();
       const scanNode = Object.values(scene.nodes).find((n: any) => n?.type === 'scan') as any;
@@ -73,10 +82,13 @@ export default function ProjectEditorPage() {
           try {
             const scanNode = Object.values(useScene.getState().nodes).find((n: any) => n?.type === 'scan') as any;
             const maskRegions = scanNode?.metadata?.maskRegions || base.manifest.maskRegions || [];
+            const sceneNodes = useScene.getState().nodes as Record<string, any>;
+            const hasInterpretation = listReviewEntries(sceneNodes).length > 0;
             const next = await saveProject({
               ...base,
               manifest: {
                 ...base.manifest,
+                interpretation: hasInterpretation ? deriveInterpretation(sceneNodes, base.manifest.interpretation) : base.manifest.interpretation,
                 maskRegions,
                 sceneSnapshot: getSceneDocument(),
               },
@@ -117,9 +129,9 @@ export default function ProjectEditorPage() {
   if (!document) return <main className="flex min-h-screen items-center justify-center bg-background text-text-muted">{status === 'error' ? error : 'Loading project…'}</main>;
   const label = status === 'saving' ? 'Saving…' : status === 'unsaved' ? 'Unsaved changes' : status === 'error' ? 'Save failed' : 'Saved';
   return <EditorLayout>
-    <div className="absolute left-3 top-3 z-50 flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow"><Link href="/projects" className="text-accent">Projects</Link><span className="font-medium">{document.manifest.name}</span><span aria-live="polite" className={status === 'error' ? 'text-red-500' : 'text-text-muted'}>{label}</span><button onClick={() => void saveNowRef.current?.()} className="rounded bg-accent px-3 py-1 text-white">Save</button>{error && <span role="alert" className="text-red-500">{error}</span>}</div>
+    <div className="absolute left-3 top-3 z-50 flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow"><Link href="/projects" className="text-accent">Projects</Link><span className="font-medium">{document.manifest.name}</span><span aria-live="polite" className={status === 'error' ? 'text-red-500' : 'text-text-muted'}>{label}</span><button onClick={() => void saveNowRef.current?.()} className="rounded bg-accent px-3 py-1 text-white">Save</button><ReviewToggleButton />{error && <span role="alert" className="text-red-500">{error}</span>}</div>
     <div className="w-[280px] border-r border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden"><ScenePanel /></div>
-    <div className="flex-1 bg-background relative overflow-hidden h-full"><SceneViewer selectedId={selectedObjectId} onSelectObject={setSelectedObjectId} /></div>
+    <div className="flex-1 bg-background relative overflow-hidden h-full"><SceneViewer selectedId={selectedObjectId} onSelectObject={setSelectedObjectId} /><InterpretationReviewPanel /></div>
     <div className="w-[380px] border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden"><ChatPanel /></div>
   </EditorLayout>;
 }

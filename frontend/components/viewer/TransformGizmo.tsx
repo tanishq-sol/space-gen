@@ -5,6 +5,8 @@ import { TransformControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { sceneRegistry, useScene } from '@pascal-app/core'
 import { useSpaceGenStore } from '@/lib/store'
+import { applyDetectionPose } from '@/lib/interpretation/corrections'
+import { reviewMetaOf } from '@/lib/interpretation/review'
 
 export function TransformGizmo() {
   const transformRef = useRef<any>(null)
@@ -52,11 +54,17 @@ export function TransformGizmo() {
     function handleDraggingChange(event: any) {
       if (event.value || !target || !selectedObjectId) return
       const object = target
-      useScene.getState().updateNode(selectedObjectId as any, {
-        position: [object.position.x, Math.max(0, object.position.y), object.position.z],
-        rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-        scale: [object.scale.x, object.scale.y, object.scale.z],
-      } as any)
+      const pose = {
+        position: [object.position.x, Math.max(0, object.position.y), object.position.z] as [number, number, number],
+        rotation: [object.rotation.x, object.rotation.y, object.rotation.z] as [number, number, number],
+        scale: [object.scale.x, object.scale.y, object.scale.z] as [number, number, number],
+      }
+      // Interpretation detections also update their linked mask and review status in one undo step.
+      if (reviewMetaOf((useScene.getState().nodes as Record<string, any>)[selectedObjectId])?.kind === 'detection') {
+        applyDetectionPose(selectedObjectId, pose)
+      } else {
+        useScene.getState().updateNode(selectedObjectId as any, pose as any)
+      }
     }
     controls.addEventListener('dragging-changed', handleDraggingChange)
     return () => controls.removeEventListener('dragging-changed', handleDraggingChange)

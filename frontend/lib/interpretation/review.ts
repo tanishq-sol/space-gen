@@ -179,3 +179,12 @@ export function deriveInterpretation(nodes: Nodes, base: RoomInterpretation): Ro
     detections,
   };
 }
+
+/** Drops interpretation-derived walls/items that placement must not rely on (unverified or rejected). */
+export function filterToPlaceable<T extends { walls: Array<{ id: string }>; items: Array<{ id: string }> }>(summary: T, nodes: Nodes): T {
+  const trusted = (id: string) => {
+    const meta = reviewMetaOf(nodes[id]);
+    return !meta || TRUSTED_STATUSES.has(meta.status);
+  };
+  return { ...summary, walls: summary.walls.filter((w) => trusted(w.id)), items: summary.items.filter((i) => trusted(i.id)) };
+}

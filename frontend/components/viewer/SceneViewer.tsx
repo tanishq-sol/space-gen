@@ -1,5 +1,6 @@
 'use client';
 
+import { InterpretationOverlay } from './InterpretationOverlay';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
@@ -351,6 +352,7 @@ export function SceneViewer({ selectedId, onSelectObject }: SceneViewerProps) {
       />
       <Viewer perf={false} useBvh={true} transparent>
         <TransformGizmo />
+        <InterpretationOverlay />
         <MaskRegionVisualizer
           maskRegions={maskRegions}
           selectedId={selectedId || selectedIds[0] || null}

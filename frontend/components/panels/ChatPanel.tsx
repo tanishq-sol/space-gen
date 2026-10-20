@@ -18,6 +18,7 @@ import { ChatMessage as ChatMessageType } from '@/lib/types';
 import { getEditableSceneSummary, undoSceneAction } from '@/lib/pascal/sceneBridge';
 import { executeSpatialToolCalls, ExecutionResult } from '@/lib/ai/executor';
 import { replaceItemWithPhotoReference, ReplacementResult } from '@/lib/ai/photoTo3DMatcher';
+import { filterToPlaceable, getPlacementWarning } from '@/lib/interpretation/review';
 import { solveSmartPlacements } from '@/lib/ai/spatialLayoutSolver';
 import { ChatAttachmentBar } from './ChatAttachmentBar';
 import { useViewer } from '@pascal-app/viewer';
@@ -209,7 +210,12 @@ export function ChatPanel() {
 
       setIsLoading(true);
       try {
-        const sceneSummary = getEditableSceneSummary();
+        const sceneNodes = useScene.getState().nodes as Record<string, any>;
+        const placementWarning = getPlacementWarning(sceneNodes);
+        if (placementWarning) {
+          addChatMessage({ role: 'assistant', content: `⚠️ ${placementWarning}`, timestamp: Date.now() });
+        }
+        const sceneSummary = filterToPlaceable(getEditableSceneSummary(), sceneNodes);
         const modelUrl = currentAttachment?.dataUrl || '/samples/models/chair.glb';
         const modelName = currentAttachment?.name?.replace(/\.glb$/i, '') || 'Dining Chair';
         const candidates = solveSmartPlacements(
