@@ -1,0 +1,200 @@
+I've planned this out below as 18 tasks you can paste to your agents, in 5 waves. First, the repo is further behind than `.agent-state/PROGRESS.md` says:
+
+- **The frontend doesn't install as committed.** `npm ci` fails because Pascal needs `three@^0.186` and the repo pins `^0.185`. With `--legacy-peer-deps`, `tsc` and `next build` both pass.
+- **Pascal is only used as a viewer.** The editor package isn't wired in, item nodes use the wrong fields (`modelUrl` where Pascal expects `asset.src`), and the room is seeded from hardcoded sample data on every load.
+- **The splat doesn't show in the editor.** Pascal's viewer uses three.js's WebGPU renderer, and I haven't confirmed that Spark's splat renderer works with it. The "hide region" controls only store data; they don't mask anything.
+- **Nothing is saved.** A reload loses all edits. The backend returns demo data for every scene ID, and three file routes have a path traversal hole.
+- **AI changes the scene directly.** There's no proposal, validation or accept/reject step. "Photo-to-3D" is a keyword match against 7 placeholder models.
+- **About the two projects you linked:** Pascal (MIT) is the right base, and it already has wall, slab, zone, door, window, item, scan and measurement nodes, plus undo and IndexedDB saving. PlayCanvas Editor needs the playcanvas.com backend, so don't embed it. PlayCanvas's SuperSplat and `splat-transform` are better suited for cleaning and converting splats.
+- **On converting splats to meshes:** a full room mesh won't be editable in any useful way. A better approach is to keep the splat as the photoreal background, fit the walls, floor and openings as editable Pascal shapes, and replace furniture with GLB models. Use meshes only for collision checks.
+
+I didn't change the repo. The only thing I created is a gitignored `node_modules` from a test install.
+
+## Order and dependencies
+
+| Wave | Tasks (each line runs in parallel) | Starts after |
+|---|---|---|
+| 0 | T01 frontend baseline · T02 backend baseline · T03 splat spike · T04 shared data formats | now |
+| 1 | T05 splat + alignment · T06 GLB place/replace · T07 project save → then T08 masking, T09 end-to-end test | wave 0 |
+| 2 | T10 room structure · T11 3D object detection · T12 correction UI | T04, T05 |
+| 3 | T13 validator · T14 AI proposals → then T15 proposal preview | wave 1, T12 |
+| 4 | T16 variants/compare · T17 presentation/share | T07, T15 |
+| 5 | T18 architectural editing + accuracy | wave 2 |
+
+## Paste this at the top of every task
+
+```
+CONTEXT: SpaceGen repo. Next.js 16 frontend in frontend/ (read frontend/AGENTS.md and node_modules/next/dist/docs before coding), FastAPI backend in backend/. Product: scan a room → Gaussian splat → editable scene → AI edits.
+DECISIONS (do not change without asking):
+- The Pascal scene store (@pascal-app/core useScene + zundo) is the source of truth for editable objects. Use Pascal node schemas (prefixed ids, item.asset.src). Do not add parallel scene state in lib/store.ts.
+- The splat stays an unchanged background layer. Editable things are Pascal nodes (walls/slab/zone/door/window/item). Mesh conversion is only for collision proxies.
+- Scene frame: Y-up, meters, floor at y=0. The scan is placed with a stored 4x4 scanToScene matrix.
+- Shared data formats live in frontend/lib/contracts (zod) and backend/models/contracts.py (pydantic). Extend them; don't fork them.
+- AI never changes the scene directly. It emits EditProposals that the user accepts.
+RULES: Work on a branch named in the task. Keep the diff scoped to the task. Add tests. Required proof in the PR: command output for build/typecheck/tests, plus a screenshot or recording for UI. Never claim something passed without output.
+```
+
+## Wave 0
+
+**T01 — Frontend baseline** (branch `chore/frontend-baseline`)
+```
+Goal: a clean, reproducible frontend build with CI.
+- Fix the dependency conflict so plain `npm ci` passes (Pascal needs three@^0.186; repo pins ^0.185). No --legacy-peer-deps.
+- Remove or quarantine dead code: frontend/src/App.tsx, vite.config.ts, duplicate components/AholoViewer vs components/viewer/AholoViewer, and unused viewers. Use grep to prove each file is unused before deleting.
+- Add Vitest (unit) and Playwright (one smoke test: editor page loads, canvas renders, no console errors).
+- Add GitHub Actions running npm ci, lint, tsc --noEmit, vitest, next build, playwright.
+- Fix .agent-state/PROGRESS.md so it states only verified facts.
+Done when: CI is green on the PR, with logs linked.
+```
+
+**T02 — Backend baseline** (branch `chore/backend-baseline`)
+```
+Goal: the backend installs, runs and is safe.
+- Add the missing deps (open3d, trimesh, plyfile). Put heavy GPU deps (torch, gsplat, nerfstudio) in requirements-gpu.txt.
+- Fix DATA_ROOT in backend/routes/reconstruction.py: it hardcodes "D:/..." and creates a literal ./D: directory on Linux. Use env config with a cross-platform default. Remove hardcoded Windows tool paths and read them from config.
+- Fix the path traversal in every {filename:path} route: resolve the path and require it to stay inside its base directory. Add tests proving ../ is rejected.
+- Make silent demo-data fallbacks explicit (return an error, or a `demo: true` flag).
+- Add pytest + ruff and add a backend job to CI (coordinate with T01's workflow file).
+Done when: `pip install -r requirements.txt && pytest` passes in CI, and curl of /health plus one traversal attempt (expect 400/404) is shown in the PR.
+```
+
+**T03 — Spike: splat inside the Pascal viewport** (branch `spike/splat-in-pascal`, time-box 2 days)
+```
+Goal: decide how the Gaussian splat renders in the same 3D view as Pascal's nodes, with correct depth between them.
+Known: Pascal's Viewer uses three/webgpu WebGPURenderer (it falls back to WebGL2 via forceWebGL in renderer-capability.js). @sparkjsdev/spark 2.4 is installed; whether it works with WebGPURenderer is unverified.
+Evaluate at least: (a) Spark inside Pascal's renderer, (b) forcing Pascal to WebGL and adding Spark, (c) a second canvas with a synced camera, with depth composited (Pascal depth → splat), (d) another splat renderer that supports WebGPU.
+For each, check: does a GLB item sit correctly in front of and behind splat surfaces, FPS on a 1–2M splat scene (use public/Hurstville_Museum_Gallery.sog), whether per-region masking (box/OBB opacity) is possible, and whether .sog/.spz/.ply load.
+Deliver: docs/decisions/001-splat-rendering.md with a recommendation and evidence (screenshots, FPS numbers), plus a minimal working prototype page.
+```
+
+**T04 — Shared data formats** (branch `feat/contracts`)
+```
+Goal: one versioned data model used by frontend, backend and AI.
+Create frontend/lib/contracts/*.ts (zod) and backend/models/contracts.py (pydantic v2), kept in sync via generated JSON Schema plus a CI check that fails if they differ.
+Types:
+- ProjectManifest {schemaVersion, id, name, scan: ScanAsset, interpretation: RoomInterpretation, sceneSnapshot (Pascal nodes), assets: AssetRef[], history: EditRecord[], variants: Variant[], activeVariantId}
+- ScanAsset {url, format: sog|spz|ply|splat, scanToScene: number[16], scaleSource: none|user_measurement|sensor, bounds}
+- RoomInterpretation {floor plane, ceilingHeight, outline polygon, walls[{id, start, end, height, thickness, confidence}], openings[{id, wallId, kind: door|window|opening, offset, width, height, sill, confidence}], detections[{id, category, label, obb {center, size, yaw}, confidence, maskRegionId, status: auto|verified|corrected|rejected}]}. Every element carries provenance auto|user.
+- MaskRegion {id, obb, feather, enabled}
+- EditProposal {id, op: replace|add|move|remove, targetNodeId?, asset {source: catalog|upload|generated, url, dimensions}, transform {position, rotationY, scale}, rationale, validation {ok, violations[{rule, severity, detail, nodeIds}]}, status: pending|accepted|rejected}
+- EditRecord, Variant, AssetRef (with measured GLB dimensions).
+Include fixtures (one realistic room: 2 doors, 1 window, 6 detections) and round-trip tests in both languages.
+Done when: both test suites pass and the schema-drift check is in CI.
+```
+
+## Wave 1 — editor loop (Phase 1)
+
+**T05 — Splat layer and scan alignment** (branch `feat/splat-layer`; needs T03 and T04)
+```
+Implement T03's chosen approach in the main editor. Store the scan as a Pascal ScanNode (url, plus metadata.scanToScene). Remove the hardcoded re-seeding on mount.
+Alignment tool: (1) user clicks 3+ floor points → fits a plane → sets up-axis and floor at y=0; (2) user picks two points and enters a real distance → sets scale; (3) rotate about Y to square up a wall. Store the result in scanToScene, with undo support.
+Done when: a real scan loads, is level with Pascal's grid, and a 1 m reference cube looks 1 m against a known object. Screenshots before and after alignment.
+```
+
+**T06 — GLB place, select, replace, undo** (branch `feat/item-editing`; needs T01 and T04)
+```
+Fix item nodes to Pascal's schema (prefixed ids, asset.src, asset.dimensions; see node_modules/@pascal-app/core/dist/schema/nodes/item.d.ts). Wire in @pascal-app/editor's selection and transform tools, or fix our TransformGizmo against Pascal nodes.
+Flows: place from the catalog (public/catalog + backend catalog), replace the selected item (keep position/yaw, place it on the floor, match its footprint), upload your own GLB (measure the bounding box, normalize to meters, Y-up, origin at bottom center).
+Every user action is one undo step (use Pascal's temporal store; group compound edits). Connect the header undo/redo buttons.
+Done when: place → move → replace → undo ×3 → redo works. Vitest coverage for the schema conversion; recording in the PR.
+```
+
+**T07 — Project save and reopen** (branch `feat/projects`; needs T02 and T04)
+```
+Backend: /api/projects CRUD, PUT /api/projects/{id} (full ProjectManifest, optimistic concurrency via revision), asset upload (scan + GLB) to the storage folder with content-hash names, GET assets. Use the filesystem plus JSON for now, behind a repository interface so Postgres/Supabase can be swapped in later. Keep backend/db/schema.sql aligned.
+Frontend: project list/new/open, load the manifest into the Pascal store, manual save plus 3 s debounced autosave, an unsaved-changes indicator, and URL /editor/[projectId].
+Done when: pytest covers save/load round-trip and revision conflicts; reload of the page restores identical node transforms (asserted in a test).
+```
+
+**T08 — Hide the original object behind a replacement** (branch `feat/splat-masking`; needs T05 and T06)
+```
+Real per-region splat masking (OBB, with a feathered opacity falloff) in the splat renderer chosen in T03. Not metadata only.
+A MaskRegion is linked to a detection or item. Replacing a detected item creates its mask automatically. Add a toggle to show the original (ghost) and a handle to resize the mask. Masks persist in the manifest and support undo.
+Done when: replacing a chair hides the original chair splats with no visible ghost from 4 camera angles (screenshots), and undo restores them.
+```
+
+**T09 — End-to-end test of Phase 1** (branch `test/e2e-editor-loop`; after T05–T08)
+```
+Playwright test on a fixture project: open → select detected chair → replace with GLB → mask applied → undo → redo → save → reload → assert same placement, same mask, item visible. Run it in CI.
+Also write docs/phase1-demo.md with steps and a recording. Fix integration bugs you find (keep fixes small, list them in the PR).
+```
+
+## Wave 2 — reviewable room interpretation (Phase 2)
+
+**T10 — Room structure from the scan** (branch `feat/room-structure`, backend)
+```
+Service plus job endpoint: from splat positions and opacity (with optional COLMAP points), compute: gravity alignment, floor plane (RANSAC), ceiling height, wall planes (Manhattan prior with a non-Manhattan fallback), room outline polygon, openings (gaps or low density in wall bands, plus optional image-based door/window detection). Every element gets a confidence value.
+Output: RoomInterpretation (T04). Also suggest a scanToScene.
+Tests: synthetic point clouds with known rooms (rectangle, L-shape, noise and floaters) must recover walls within tolerance; report the numbers. Run as a background job, not inside the HTTP request.
+```
+
+**T11 — 3D object detection** (branch `feat/object-detection-3d`, backend)
+```
+Detect objects in keyframes (open-vocabulary detector, e.g. Grounding DINO/OWLv2 + SAM 2, or Gemini bounding boxes as a fallback). Lift detections into 3D using COLMAP camera poses and splat depth (raycast/render depth), cluster across views into OBBs (center, size, yaw), and compute confidence from view agreement × detector score.
+Output: RoomInterpretation.detections plus a MaskRegion for each detection.
+Make it GPU-optional (CPU fallback slow but working). Evaluate on 2 real scans by hand-labelling OBBs; report IoU/recall in the PR.
+```
+
+**T12 — Interpretation review and correction UI** (branch `feat/interpretation-review`, frontend; needs T04 and T05; develop against T04 fixtures)
+```
+Convert RoomInterpretation into Pascal nodes (slab, walls, zone, door/window items). Rewrite lib/pascal/scanConverter.ts.
+Review mode: overlays colored by confidence, a list of low-confidence items first, a "verify" action per item.
+Corrections: drag outline vertices, move/split/delete walls, add/remove/resize openings, move/resize/rotate detection boxes, relabel, reject. Corrections set provenance=user and status=corrected, update the linked masks, and support undo/save.
+Placement features must use only verified or corrected elements, or show a warning.
+Done when: a user fixes a wrong wall and a misplaced detection on a fixture, saves, reloads, and the corrections persist (Playwright test + recording).
+```
+
+## Wave 3 — safe, spatial AI edits (Phase 3)
+
+**T13 — Validator and placement solver** (branch `feat/placement-validator`, pure TS)
+```
+frontend/lib/placement/: validate(proposal, scene, interpretation) → violations. Rules: inside room outline; no OBB overlap with items or walls (small tolerance); clearance in front of doors (swing radius), walkways ≥ 0.9 m (configurable), furniture front clearance; resting on the floor or attached to a wall; stays out of window sills when tall.
+Solver: for "place N of asset X", generate candidates (along walls, facing focal points, grouped), score them (validity, clearance, symmetry, relation to anchor objects) and return the top-k with reasons. Replace lib/ai/spatialLayoutSolver.ts.
+Unit tests with fixture rooms; must run in < 50 ms for 30 items.
+```
+
+**T14 — AI agent that produces EditProposals** (branch `feat/ai-proposals`; needs T04 and T13)
+```
+Change lib/ai/tools.ts and executor.ts plus app/api/ai/spatial/route.ts so the model never changes the scene. Tools may only read (scene summary, room, catalog search, run the solver) and emit EditProposal[] via structured output. Validate each proposal with T13 before returning it.
+Inputs: text, a reference photo (Gemini vision → category/style/color/size → catalog search ranked by similarity; generating a model from the photo stays behind an interface for later), an uploaded GLB (measure it, then the solver places it).
+Look at @pascal-app/mcp's tool design for ideas.
+Evals (see .agents/skills/ai-eval-benchmark): 15 prompts on fixture rooms — "replace the chair with this model", "add 4 dining chairs around the table", "move the sofa against the long wall" — scoring the right target, valid placement, and a useful rationale. Report pass rate.
+```
+
+**T15 — Proposal preview and accept/reject** (branch `feat/proposal-ux`; needs T08 and T14)
+```
+Render pending proposals as transient Pascal nodes (excluded from saving) with ghost material, attached to scene coordinates so they stay put as the camera moves. Masks preview on the targets.
+Chat cards: rationale, violations, accept / reject / adjust (open the gizmo on the ghost) / accept all. Accept = one undo step that commits nodes plus masks plus an EditRecord. Reject removes the preview cleanly.
+Done when: "replace the chair with this model" + attached GLB → visible proposal → orbit the camera (stable) → accept → undo → redo → save/reload persists. Playwright test + recording.
+```
+
+## Wave 4 — save, compare, present (Phase 4)
+
+**T16 — Design variants and comparison** (branch `feat/variants`)
+```
+Variants share one scan and one interpretation, each with its own scene snapshot and history. Create (from current/blank), duplicate, rename, delete, switch.
+Compare: side-by-side views with synced cameras, plus a swipe slider on the same view. Show a list of item differences between two variants. History timeline per variant.
+Saves into the ProjectManifest from T07.
+```
+
+**T17 — Client presentation and sharing** (branch `feat/presentation`)
+```
+Read-only presentation route /p/[shareToken]: no editing tools, saved camera viewpoints with a guided tour, variant switcher, item list with product links, optional hero images (existing image generation, labelled "AI render").
+Backend: share tokens that can be revoked, read-only access, plus a basic auth decision documented for projects (accounts are out of scope unless trivial).
+Rework app/present/page.tsx.
+Done when: a designer shares a link and it opens in a logged-out browser showing variant A vs B.
+```
+
+## Wave 5 — architectural editing (Phase 5)
+
+**T18 — Manual architectural editing and measured accuracy** (split into 18a/18b if large)
+```
+18a: Enable Pascal's wall/door/window/slab/measurement tools in our editor, snapping to the scan (wall faces, floor, corners). Edits keep the interpretation in sync (provenance=user).
+18b: Accuracy harness. Collect 3+ reference rooms with laser-measured dimensions (and optional iPhone RoomPlan/LiDAR exports). Script: scan → interpretation → compare wall lengths, ceiling height and opening sizes → error report (mean/max, cm and %). UI shows "estimated ±X cm" from the measured error per scale source (none/user measurement/sensor). Never show measurements as exact. Optional: RoomPlan USDZ import as a higher-confidence structure source.
+```
+
+## Watch items
+
+- **The rendering decision (T03) is the biggest risk.** T05, T08 and T15 all depend on it, so review its write-up before starting wave 1.
+- **Merge order matters for shared files.** T04 should merge first, and T01 and T02 both edit the CI workflow file.
+- **Not checked yet:** whether Spark renders in a WebGPU view, and what formats it supports. T03 exists to answer that.
