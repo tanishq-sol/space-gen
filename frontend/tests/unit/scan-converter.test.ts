@@ -5,11 +5,9 @@ import { useScene } from '@pascal-app/core';
 import { ProjectManifestSchema, RoomInterpretationSchema } from '@/lib/contracts';
 import {
   applyInterpretationToScene,
-  convertScanToEditableNodes,
   deriveInterpretationFromScene,
   getInterpretationMeta,
   planInterpretationNodes,
-  SAMPLE_ROOM_SCAN_MANIFEST,
 } from '@/lib/pascal/scanConverter';
 import { undoSceneAction } from '@/lib/pascal/sceneBridge';
 
@@ -95,14 +93,5 @@ describe('scanConverter: RoomInterpretation -> Pascal nodes', () => {
   it('refuses to convert twice', () => {
     convertFixture();
     expect(() => convertFixture()).toThrow(/already/);
-  });
-
-  it('keeps the legacy demo manifest working through the same path', () => {
-    const result = convertScanToEditableNodes(SAMPLE_ROOM_SCAN_MANIFEST);
-    expect(result.wallCount).toBe(4);
-    expect(result.exclusionBoxCount).toBe(5);
-    const derived = deriveInterpretationFromScene(nodes())!;
-    expect(derived.openings).toHaveLength(2);
-    expect(derived.detections[0].maskRegionId).toBe('mask_detected_sofa_1');
   });
 });

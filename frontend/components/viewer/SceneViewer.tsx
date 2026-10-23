@@ -27,7 +27,6 @@ import { ScanAlignmentTool } from './ScanAlignmentTool';
 import type { Matrix4, Vector3 } from '@/lib/contracts/primitives';
 import type { MaskRegion } from '@/lib/contracts';
 import { EditorToolbar, ActiveTool } from '@/components/layout/EditorToolbar';
-import { ScanSegmentationOverlay } from './ScanSegmentationOverlay';
 import { ScanToEditableModal } from '../capture/ScanToEditableModal';
 import type { ImportedScan } from '@/lib/scan/splatImport';
 import { AIPlacementPreview } from './AIPlacementPreview';
@@ -380,9 +379,6 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
           }}
         />
       )}
-
-      {/* SuperSplat Overlay for Segmented Objects */}
-      <ScanSegmentationOverlay />
 
       {/* Modal to Convert Scan to Parametric Walls + 3D Meshes */}
       {projectId && onScanImported && (
