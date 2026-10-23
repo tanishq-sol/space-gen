@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { emitter, useScene, type GridEvent } from '@pascal-app/core';
 import { Grid, ToolManager, useEditor } from '@/lib/pascal/pascalEditor';
 import { Html } from '@react-three/drei';
-import { useViewer } from '@pascal-app/viewer';
 import { create } from 'zustand';
 import type { Point2D } from '@/lib/contracts';
 import { buildSnapTargets, snapPlanPoint, type SnapResult, type SnapTargets } from '@/lib/pascal/scanSnapping';
@@ -41,10 +40,6 @@ export function armArchitecturalTool(tool: ArchitecturalTool | null) {
     editor.armToolMode({ mode: 'select' });
     return;
   }
-  // Pascal's build tools draw on the selected level; the blank editor has none selected until we pick one.
-  const viewer = useViewer.getState();
-  const level = viewer.selection.levelId ? null : Object.values(useScene.getState().nodes).find((n) => n?.type === 'level');
-  if (level) viewer.setSelection({ levelId: level.id as never });
   editor.setPhase('building');
   editor.setSnappingMode('wall', 'off');
   editor.setSnappingMode('polygon', 'off');
