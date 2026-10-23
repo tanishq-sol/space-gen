@@ -175,10 +175,11 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
     await requestProposals(prompt, attachment, [targetId]);
   };
 
-  const handleSend = async () => {
-    if ((!input.trim() && !attachedFile) || isLoading) return;
+  const handleSend = async (text?: string) => {
+    const draft = text ?? input;
+    if ((!draft.trim() && !attachedFile) || isLoading) return;
 
-    const userMsg = input.trim();
+    const userMsg = draft.trim();
     const currentAttachment = attachedFile;
 
     setInput('');
@@ -249,10 +250,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
               {quickActions.map((action) => (
                 <button
                   key={action}
-                  onClick={() => {
-                    setInput(action);
-                    inputRef.current?.focus();
-                  }}
+                  onClick={() => handleSend(action)}
                   className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition duration-150 flex items-center justify-between group"
                 >
                   <span className="truncate">{action}</span>
@@ -339,7 +337,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={(!input.trim() && !attachedFile) || isLoading}
             className="absolute right-2 p-1.5 bg-accent hover:bg-accent-dark disabled:bg-surface-elevated disabled:text-text-muted text-white rounded-lg transition-colors"
           >
