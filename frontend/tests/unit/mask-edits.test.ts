@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { SplatEditSdf } from '@sparkjsdev/spark';
 import type { MaskRegion } from '@/lib/contracts';
-import { applyMaskEdits, buildMaskEdits, type MaskableMesh } from '@/lib/splat/maskEdits';
+import { applyMaskEdits, buildMaskEdits, MASK_FLOOR_MARGIN, type MaskableMesh } from '@/lib/splat/maskEdits';
 
 const chairMask: MaskRegion = {
   id: 'mask_item_chair',
-  obb: { center: [2, 0.425, -0.75], size: [0.6, 0.85, 0.5], yaw: Math.PI / 2 },
+  obb: { center: [2, 0.45, -0.75], size: [0.6, 0.82, 0.5], yaw: Math.PI / 2 },
   feather: 0.04,
   enabled: true,
   itemId: 'item_chair',
@@ -28,13 +28,23 @@ function sdfLocal(sdf: InstanceType<typeof SplatEditSdf>, world: THREE.Vector3):
 const inside = (v: THREE.Vector3) => Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && Math.abs(v.z) <= 1;
 
 describe('mask edits (Spark SplatEdit SDF boxes)', () => {
+  it('keeps the floor: the SDF box bottom is clamped to floor + 4 cm', () => {
+    const [edit] = buildMaskEdits([{ ...chairMask, obb: { ...chairMask.obb, center: [2, 0.2, -0.75], size: [0.6, 0.8, 0.5] } }]);
+    const sdf = edit.sdfs![0];
+    const bottom = sdf.position.y - sdf.scale.y;
+    expect(bottom).toBeCloseTo(MASK_FLOOR_MARGIN);
+    expect(sdf.position.y + sdf.scale.y).toBeCloseTo(0.6);
+    expect(inside(sdfLocal(sdf, new THREE.Vector3(2, 0.01, -0.75)))).toBe(false);
+    expect(inside(sdfLocal(sdf, new THREE.Vector3(2, 0.3, -0.75)))).toBe(true);
+  });
+
   it('encodes OBB center, yaw and half-extents in scene frame', () => {
     const [edit] = buildMaskEdits([chairMask]);
     const sdf = edit.sdfs![0];
-    expect(sdf.position.toArray()).toEqual([2, 0.425, -0.75]);
+    expect(sdf.position.toArray()).toEqual([2, 0.45, -0.75]);
     expect(sdf.rotation.y).toBeCloseTo(Math.PI / 2);
     expect(sdf.scale.x).toBeCloseTo(0.3);
-    expect(sdf.scale.y).toBeCloseTo(0.425);
+    expect(sdf.scale.y).toBeCloseTo(0.41);
     expect(sdf.scale.z).toBeCloseTo(0.25);
     expect(sdf.opacity).toBe(0);
     expect(edit.softEdge).toBeCloseTo(0.04);
