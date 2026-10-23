@@ -1,11 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useViewer, type WallMode } from '@pascal-app/viewer';
-import { useScene } from '@pascal-app/core';
-import { useStore } from 'zustand';
-import { useSpaceGenStore } from '@/lib/store';
-import { undoSceneAction, redoSceneAction } from '@/lib/pascal/sceneBridge';
+import React, { useEffect, useRef, useState } from 'react';
+import { useViewer } from '@pascal-app/viewer';
 import { useEditor } from '@/lib/pascal/pascalEditor';
 import { armArchitecturalTool, type ArchitecturalTool } from '@/components/viewer/ArchitecturalTools';
 import {
@@ -20,16 +16,17 @@ import {
   EyeOff,
   Layers,
   Scissors,
-  Undo2,
-  Redo2,
   Sparkles,
   Crosshair,
   DoorOpen,
   AppWindow,
   Ruler,
+  Ellipsis,
 } from 'lucide-react';
 
-const PASCAL_TOOLS: Array<{ tool: ArchitecturalTool; label: string; title: string; Icon: typeof Square }> = [
+type ToolIcon = typeof Square;
+
+const PASCAL_TOOLS: Array<{ tool: ArchitecturalTool; label: string; title: string; Icon: ToolIcon }> = [
   { tool: 'wall', label: 'Wall', title: 'Draw a wall, snapped to scan corners and wall faces', Icon: Square },
   { tool: 'slab', label: 'Slab', title: 'Draw a floor slab', Icon: Grid3X3 },
   { tool: 'door', label: 'Door', title: 'Place a door on a wall', Icon: DoorOpen },
@@ -54,6 +51,13 @@ interface EditorToolbarProps {
   onToggleScanAlignment?: () => void;
 }
 
+const TOOL =
+  'relative flex h-12 w-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] leading-none text-slate transition-colors duration-150 hover:bg-ink/5 hover:text-ink max-lg:h-11 max-lg:w-11 xl:w-16';
+const TOOL_ON = 'bg-ink/[0.07] font-semibold text-ink after:absolute after:bottom-1 after:left-4 after:right-4 after:h-0.5 after:rounded-full after:bg-navy';
+const MENU_ITEM =
+  'flex h-9 w-full items-center gap-2 rounded-control px-2 text-left text-[13px] text-ink hover:bg-ink/5 max-lg:h-11';
+
+/** Bottom tool palette: the editing tools, with the rarely used scan and view tools in an overflow group. */
 export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, isAligningScan, onToggleScanAlignment }: EditorToolbarProps) {
   const levelMode = useViewer((state) => state.levelMode);
   const setLevelMode = useViewer((state) => state.setLevelMode);
@@ -70,27 +74,23 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
     onSelectTool(tool);
   };
 
-  const canUndo = useStore(useScene.temporal, (state) => state.pastStates.length > 0);
-  const canRedo = useStore(useScene.temporal, (state) => state.futureStates.length > 0);
-
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const handleHistoryShortcut = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName || '')) return;
-      const key = event.key.toLowerCase();
-      if (key === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) redoSceneAction();
-        else undoSceneAction();
-      } else if (key === 'y') {
-        event.preventDefault();
-        redoSceneAction();
-      }
+    if (!moreOpen) return;
+    const close = (event: PointerEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
     };
-    window.addEventListener('keydown', handleHistoryShortcut);
-    return () => window.removeEventListener('keydown', handleHistoryShortcut);
-  }, []);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', close);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [moreOpen]);
 
   const cycleLevelMode = () => {
     if (levelMode === 'stacked') setLevelMode('exploded');
@@ -98,189 +98,116 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
     else setLevelMode('stacked');
   };
 
-  const toggleWallCutaway = () => {
-    setWallMode(wallMode === 'cutaway' ? 'up' : 'cutaway');
-  };
+  const toolButton = (key: string, label: string, title: string, Icon: ToolIcon, on: boolean, onClick: () => void, pressed?: boolean) => (
+    <button
+      key={key}
+      type="button"
+      title={title}
+      aria-label={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={`${TOOL} ${on ? TOOL_ON : ''}`}
+    >
+      <Icon size={20} aria-hidden />
+      <span className="max-xl:hidden">{label}</span>
+    </button>
+  );
+
+  const divider = <div className="mx-1 h-8 w-px self-center bg-hairline max-lg:hidden" aria-hidden />;
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center w-max max-w-[calc(100%-1rem)] items-center gap-1.5 p-1.5 rounded-2xl bg-surface/90 border border-border backdrop-blur-xl shadow-2xl text-text-primary">
-      {/* 1. Architectural CAD Tools */}
-      <div className="flex items-center gap-1 bg-surface-elevated/40 p-1 rounded-xl border border-border/50">
+    <div
+      role="toolbar"
+      aria-label="Tools"
+      className="glass absolute bottom-[calc(var(--sheet-h,0px)+16px)] left-1/2 z-30 flex max-w-[calc(100%-16px)] -translate-x-1/2 items-center gap-0.5 rounded-2xl p-1.5 lg:bottom-4"
+    >
+      {toolButton('select', 'Select', 'Select & Transform Tool (V)', MousePointer, activeTool === 'select' && !activePascalTool, () => selectTool('select'))}
+
+      {PASCAL_TOOLS.map(({ tool, label, title, Icon }) =>
+        toolButton(tool, label, title, Icon, activePascalTool === tool, () => armArchitecturalTool(activePascalTool === tool ? null : tool), activePascalTool === tool),
+      )}
+
+      {toolButton('zone', 'Zone', 'Zone Definition Tool (Z)', Shapes, activeTool === 'zone', () => selectTool('zone'))}
+      {toolButton('item', 'Item', 'Furniture & Door/Window Placement (I)', Armchair, activeTool === 'item', () => selectTool('item'))}
+
+      {divider}
+
+      {toolButton('splat-crop', 'Crop box', 'Splat Bounding-Box Erasure Crop Tool (SuperSplat)', Crop, activeTool === 'splat-crop', () => selectTool('splat-crop'))}
+      {toolButton('splat-eraser', 'Eraser', 'Splat Eraser Brush (SuperSplat)', Eraser, activeTool === 'splat-eraser', () => selectTool('splat-eraser'))}
+
+      {divider}
+
+      {/* Overflow: scan conversion, alignment, layers and cutaway */}
+      <div ref={moreRef} className="relative">
         <button
-          title="Select & Transform Tool (V)"
-          onClick={() => selectTool('select')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-            activeTool === 'select' && !activePascalTool
-              ? 'bg-accent text-white'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
-          }`}
+          type="button"
+          aria-label="More tools"
+          aria-haspopup="true"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((open) => !open)}
+          className={`${TOOL} ${moreOpen || isAligningScan || wallMode === 'cutaway' ? 'bg-ink/[0.07] text-ink' : ''}`}
         >
-          <MousePointer size={14} />
-          <span>Select</span>
+          <Ellipsis size={20} aria-hidden />
+          <span className="max-xl:hidden">More</span>
         </button>
-
-        {PASCAL_TOOLS.map(({ tool, label, title, Icon }) => (
-          <button
-            key={tool}
-            title={title}
-            aria-label={label}
-            aria-pressed={activePascalTool === tool}
-            onClick={() => armArchitecturalTool(activePascalTool === tool ? null : tool)}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition ${
-              activePascalTool === tool
-                ? 'bg-accent text-white'
-                : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            <Icon size={14} />
-          </button>
-        ))}
-
-        <button
-          title="Zone Definition Tool (Z)"
-          onClick={() => selectTool('zone')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-            activeTool === 'zone'
-              ? 'bg-accent text-white'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <Shapes size={14} />
-          <span>Zone</span>
-        </button>
-
-        <button
-          title="Furniture & Door/Window Placement (I)"
-          onClick={() => selectTool('item')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-            activeTool === 'item'
-              ? 'bg-accent text-white'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <Armchair size={14} />
-          <span>Item</span>
-        </button>
-      </div>
-
-      <div className="w-[1px] h-6 bg-border mx-1" />
-
-      {/* 2. SuperSplat-Style Splat Cleanup Tools */}
-      <div className="flex items-center gap-1 bg-surface-elevated/40 p-1 rounded-xl border border-border/50">
-        <button
-          title="Splat Bounding-Box Erasure Crop Tool (SuperSplat)"
-          onClick={() => selectTool('splat-crop')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
-            activeTool === 'splat-crop'
-              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
-          }`}
-        >
-          <Crop size={14} />
-          <span>Crop Box</span>
-        </button>
-
-        <button
-          title="Splat Eraser Brush (SuperSplat)"
-          onClick={() => selectTool('splat-eraser')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
-            activeTool === 'splat-eraser'
-              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
-          }`}
-        >
-          <Eraser size={14} />
-          <span>Eraser</span>
-        </button>
-      </div>
-
-      <div className="w-[1px] h-6 bg-border mx-1" />
-
-      {/* 3. View Modes & Scan Toggles */}
-      <div className="flex items-center gap-1">
-        {onOpenConvertModal && (
-          <button
-            title="Convert Scan to Editable Space (Extract Walls & Furniture)"
-            onClick={onOpenConvertModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-accent/10 hover:bg-accent text-accent hover:text-white transition border border-accent/40 shadow-sm"
-          >
-            <Sparkles size={13} className="text-accent-light" />
-            <span>Convert Scan</span>
-          </button>
+        {moreOpen && (
+          <div role="group" aria-label="More tools" className="absolute bottom-full right-0 mb-2 w-60 rounded-panel border border-hairline bg-paper p-1.5 shadow-float">
+            {onOpenConvertModal && (
+              <button
+                type="button"
+                title="Convert Scan to Editable Space (Extract Walls & Furniture)"
+                onClick={() => { setMoreOpen(false); onOpenConvertModal(); }}
+                className={MENU_ITEM}
+              >
+                <Sparkles size={16} aria-hidden className="text-slate" />
+                Convert Scan
+              </button>
+            )}
+            {onToggleScanAlignment && (
+              <button
+                type="button"
+                title="Align scan to the floor, real-world scale, and room axes"
+                aria-pressed={!!isAligningScan}
+                onClick={() => { setMoreOpen(false); onToggleScanAlignment(); }}
+                className={`${MENU_ITEM} ${isAligningScan ? 'bg-ink/[0.07] font-semibold' : ''}`}
+              >
+                <Crosshair size={16} aria-hidden className="text-slate" />
+                Align Scan
+              </button>
+            )}
+            <button
+              type="button"
+              title={`Scan Overlay: ${showScans ? 'Visible (Click to hide)' : 'Hidden (Click to show)'}`}
+              aria-pressed={showScans}
+              onClick={() => setShowScans(!showScans)}
+              className={MENU_ITEM}
+            >
+              {showScans ? <Eye size={16} aria-hidden className="text-slate" /> : <EyeOff size={16} aria-hidden className="text-slate" />}
+              Scan
+              <span className="ml-auto text-[11px] text-slate">{showScans ? 'Shown' : 'Hidden'}</span>
+            </button>
+            <button
+              type="button"
+              title={`Level Mode: ${levelMode} (Click to cycle)`}
+              onClick={cycleLevelMode}
+              className={MENU_ITEM}
+            >
+              <Layers size={16} aria-hidden className="text-slate" />
+              <span>Levels</span>
+              <span className="ml-auto text-[11px] capitalize text-slate">{levelMode}</span>
+            </button>
+            <button
+              type="button"
+              title={`Wall Cutaway / X-Ray: ${wallMode === 'cutaway' ? 'Active' : 'Off'}`}
+              aria-pressed={wallMode === 'cutaway'}
+              onClick={() => setWallMode(wallMode === 'cutaway' ? 'up' : 'cutaway')}
+              className={`${MENU_ITEM} ${wallMode === 'cutaway' ? 'bg-ink/[0.07] font-semibold' : ''}`}
+            >
+              <Scissors size={16} aria-hidden className="text-slate" />
+              Cutaway
+            </button>
+          </div>
         )}
-
-        {onToggleScanAlignment && (
-          <button
-            title="Align scan to the floor, real-world scale, and room axes"
-            onClick={onToggleScanAlignment}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
-              isAligningScan
-                ? 'bg-accent text-white border-accent'
-                : 'bg-surface-elevated/60 hover:bg-surface-elevated text-text-secondary border-border'
-            }`}
-          >
-            <Crosshair size={14} />
-            <span>Align Scan</span>
-          </button>
-        )}
-
-        <button
-          title={`Scan Overlay: ${showScans ? 'Visible (Click to hide)' : 'Hidden (Click to show)'}`}
-          onClick={() => setShowScans(!showScans)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border ${
-            showScans
-              ? 'bg-emerald-500/15 text-success border-success/30'
-              : 'bg-surface-elevated/60 text-text-muted border-border hover:text-text-primary'
-          }`}
-        >
-          {showScans ? <Eye size={14} /> : <EyeOff size={14} />}
-          <span>Scan</span>
-        </button>
-
-        <button
-          title={`Level Mode: ${levelMode} (Click to cycle)`}
-          onClick={cycleLevelMode}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-elevated/60 hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition border border-border"
-        >
-          <Layers size={14} />
-          <span className="capitalize">{levelMode}</span>
-        </button>
-
-        <button
-          title={`Wall Cutaway / X-Ray: ${wallMode === 'cutaway' ? 'Active' : 'Off'}`}
-          onClick={toggleWallCutaway}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border ${
-            wallMode === 'cutaway'
-              ? 'bg-accent/10 text-accent border-accent/30'
-              : 'bg-surface-elevated/60 text-text-secondary border-border hover:text-text-primary'
-          }`}
-        >
-          <Scissors size={14} />
-          <span>Cutaway</span>
-        </button>
-      </div>
-
-      <div className="w-[1px] h-6 bg-border mx-1" />
-
-      {/* 4. History Undo / Redo */}
-      <div className="flex items-center gap-0.5">
-        <button
-          title="Undo (Ctrl+Z)"
-          onClick={() => undoSceneAction()}
-          disabled={!canUndo}
-          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition"
-        >
-          <Undo2 size={15} />
-        </button>
-
-        <button
-          title="Redo (Ctrl+Y)"
-          onClick={() => redoSceneAction()}
-          disabled={!canRedo}
-          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition"
-        >
-          <Redo2 size={15} />
-        </button>
       </div>
     </div>
   );

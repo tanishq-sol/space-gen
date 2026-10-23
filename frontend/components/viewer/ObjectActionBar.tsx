@@ -39,7 +39,7 @@ export function ObjectActionBar() {
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
+        className="absolute bottom-[calc(var(--sheet-h,0px)+88px)] left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
       >
         <div className="flex items-center gap-1.5 p-2 glass rounded-2xl border border-border shadow-2xl backdrop-blur-xl">
           {/* Object Badge */}

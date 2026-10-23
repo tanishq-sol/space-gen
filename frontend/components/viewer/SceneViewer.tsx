@@ -358,7 +358,7 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
           }}
         />
       </div>
-      <NavigationOverlay editable />
+      <NavigationOverlay hintOnly />
 
       {isAligningScan && (
         <ScanAlignmentTool

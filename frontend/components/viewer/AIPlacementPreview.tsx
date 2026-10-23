@@ -31,7 +31,7 @@ export function AIPlacementPreview() {
   if (candidatePlacements.length === 0) return null;
 
   return (
-    <div className="absolute top-20 right-6 z-30 flex flex-col gap-2 max-w-sm pointer-events-auto">
+    <div className="absolute top-[72px] right-[var(--right-inset,24px)] z-30 flex flex-col gap-2 max-w-sm pointer-events-auto">
       {/* Header Banner */}
       <motion.div
         initial={{ opacity: 0, y: -10, scale: 0.95 }}

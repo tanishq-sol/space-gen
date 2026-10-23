@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { applySceneSnapshot, clearSceneHistory, getSceneDocument, useScene, type AnyNode, type AnyNodeId } from '@pascal-app/core';
@@ -289,10 +288,33 @@ export default function ProjectEditorPage() {
 
   if (!document) return <main className="flex min-h-screen items-center justify-center bg-background text-text-muted">{status === 'error' ? error : 'Loading project…'}</main>;
   const label = status === 'saving' ? 'Saving…' : status === 'unsaved' ? 'Unsaved changes' : status === 'error' ? 'Save failed' : status === 'conflict' ? 'Conflict' : 'Saved';
-  return <EditorLayout onShare={() => setShareOpen(true)}>
-    <div className="absolute left-3 top-3 z-50 flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow"><Link href="/projects" className="text-accent">Projects</Link><span className="font-medium">{document.manifest.name}</span><span aria-live="polite" className={status === 'error' || status === 'conflict' ? 'text-red-500' : 'text-text-muted'}>{label}</span><button onClick={() => void saveNowRef.current?.()} disabled={status === 'conflict'} className="rounded bg-accent px-3 py-1 text-white disabled:opacity-50">Save</button><button aria-pressed={reviewMode} onClick={() => setReviewMode(v => !v)} className={`rounded border px-3 py-1 ${reviewMode ? 'border-accent text-accent' : 'border-border'}`}>Review scan</button><button onClick={() => setDrawingsOpen(true)} className="rounded border border-border px-3 py-1">Drawings</button>{error && status !== 'conflict' && <span role="alert" className="text-red-500">{error}</span>}</div>
+  return <EditorLayout
+    onShare={() => setShareOpen(true)}
+    projectName={document.manifest.name}
+    homeHref="/projects"
+    error={error && status !== 'conflict' ? error : undefined}
+    save={{ label, isError: status === 'error' || status === 'conflict', onSave: () => void saveNowRef.current?.(), disabled: status === 'conflict' }}
+    moreItems={[
+      { label: 'Review scan', pressed: reviewMode, onSelect: () => setReviewMode(v => !v) },
+      { label: 'Drawings', onSelect: () => setDrawingsOpen(true) },
+    ]}
+    scenePanel={<>
+      <div className="border-b border-border px-3 pb-2"><VariantBar
+        variants={document.manifest.variants.length ? document.manifest.variants : normalizeVariants(document.manifest, {}).variants}
+        activeId={document.manifest.activeVariantId}
+        onSwitch={(id) => variantOp((set, scene) => switchVariant(set, scene, id))}
+        onCreate={(from) => variantOp((set, scene) => createVariant(set, scene, { from, name: `Variant ${set.variants.length + 1}` }))}
+        onDuplicate={() => variantOp((set, scene) => duplicateVariant(set, scene, set.activeVariantId))}
+        onRename={(name) => variantOp((set, scene) => renameVariant(set, scene, set.activeVariantId, name))}
+        onDelete={() => { if (window.confirm('Delete this variant? This cannot be undone.')) variantOp((set, scene) => deleteVariant(set, scene, set.activeVariantId)); }}
+        onCompare={() => { const base = documentRef.current; if (base) setCompare(normalizeVariants(base.manifest, liveScene())); }}
+      /></div>
+      <ScenePanel projectId={params.projectId} onAssetUploaded={handleAssetUploaded} />
+    </>}
+    askPanel={reviewMode ? <InterpretationReviewPanel interpretation={document.manifest.interpretation} scan={document.manifest.scan} maskRegions={document.manifest.maskRegions} /> : <ChatPanel projectId={params.projectId} onAssetUploaded={handleAssetUploaded} onOpenReview={() => setReviewMode(true)} />}
+  >
     {status === 'conflict' && (
-      <div role="alertdialog" aria-label="Save conflict" className="absolute left-1/2 top-16 z-50 w-[420px] -translate-x-1/2 rounded-lg border border-error bg-surface p-4 text-sm shadow-xl">
+      <div role="alertdialog" aria-label="Save conflict" className="glass absolute left-1/2 top-20 z-50 w-[420px] max-w-[calc(100%-16px)] -translate-x-1/2 rounded-sheet border-error p-4 text-sm">
         <p className="font-medium text-error">This project was saved elsewhere.</p>
         <p className="mt-1 text-text-muted">{error} Reload the latest version (discarding this tab&apos;s unsaved changes) or overwrite it with this tab&apos;s version.</p>
         <div className="mt-3 flex justify-end gap-2">
@@ -307,17 +329,6 @@ export default function ProjectEditorPage() {
     })()}
     {shareOpen && <ShareDialog projectId={params.projectId} viewpoints={document.manifest.viewpoints ?? []} onClose={() => setShareOpen(false)} onAddViewpoint={(vp) => changeViewpoints((all) => [...all, vp])} onRemoveViewpoint={(id) => changeViewpoints((all) => all.filter((v) => v.id !== id))} />}
     {drawingsOpen && <DrawingsPanel projectName={document.manifest.name} onClose={() => setDrawingsOpen(false)} />}
-    <div className="w-[280px] border-r border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden"><div className="border-b border-border p-2"><VariantBar
-      variants={document.manifest.variants.length ? document.manifest.variants : normalizeVariants(document.manifest, {}).variants}
-      activeId={document.manifest.activeVariantId}
-      onSwitch={(id) => variantOp((set, scene) => switchVariant(set, scene, id))}
-      onCreate={(from) => variantOp((set, scene) => createVariant(set, scene, { from, name: `Variant ${set.variants.length + 1}` }))}
-      onDuplicate={() => variantOp((set, scene) => duplicateVariant(set, scene, set.activeVariantId))}
-      onRename={(name) => variantOp((set, scene) => renameVariant(set, scene, set.activeVariantId, name))}
-      onDelete={() => { if (window.confirm('Delete this variant? This cannot be undone.')) variantOp((set, scene) => deleteVariant(set, scene, set.activeVariantId)); }}
-      onCompare={() => { const base = documentRef.current; if (base) setCompare(normalizeVariants(base.manifest, liveScene())); }}
-    /></div><ScenePanel projectId={params.projectId} onAssetUploaded={handleAssetUploaded} /></div>
-    <div className="flex-1 bg-background relative overflow-hidden h-full"><SceneViewer selectedId={selectedObjectId} onSelectObject={setSelectedObjectId} reviewMode={reviewMode} projectId={params.projectId} onScanImported={handleScanImported} /></div>
-    <div className="w-[380px] border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden">{reviewMode ? <InterpretationReviewPanel interpretation={document.manifest.interpretation} scan={document.manifest.scan} maskRegions={document.manifest.maskRegions} /> : <ChatPanel projectId={params.projectId} onAssetUploaded={handleAssetUploaded} onOpenReview={() => setReviewMode(true)} />}</div>
+    <div className="absolute inset-0"><SceneViewer selectedId={selectedObjectId} onSelectObject={setSelectedObjectId} reviewMode={reviewMode} projectId={params.projectId} onScanImported={handleScanImported} /></div>
   </EditorLayout>;
 }

@@ -136,7 +136,7 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
   };
 
   return (
-    <div className="absolute bottom-5 left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-sm">
+    <div className="absolute bottom-[calc(var(--sheet-h,0px)+96px)] left-[var(--left-inset,24px)] z-20 pointer-events-auto flex max-h-[calc(100%-var(--sheet-h,0px)-184px)] flex-col gap-2 overflow-y-auto max-w-sm">
       <div className="flex items-center gap-2 p-2 rounded-xl bg-surface/90 border border-border backdrop-blur-md shadow-lg text-xs">
         <Sparkles size={14} className="text-success" />
         <span className="font-semibold text-text-primary">Detected Scan Objects:</span>
