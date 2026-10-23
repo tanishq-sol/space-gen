@@ -111,7 +111,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => selectTool('select')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTool === 'select' && !activePascalTool
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -128,7 +128,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
             onClick={() => armArchitecturalTool(activePascalTool === tool ? null : tool)}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activePascalTool === tool
-                ? 'bg-accent text-white shadow-md shadow-accent/25'
+                ? 'bg-accent text-white'
                 : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -141,7 +141,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => selectTool('zone')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTool === 'zone'
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -154,7 +154,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => selectTool('item')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTool === 'item'
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -172,8 +172,8 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => selectTool('splat-crop')}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTool === 'splat-crop'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-amber-400'
+              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
+              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
           }`}
         >
           <Crop size={14} />
@@ -185,8 +185,8 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => selectTool('splat-eraser')}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTool === 'splat-eraser'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-amber-400'
+              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
+              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
           }`}
         >
           <Eraser size={14} />
@@ -229,7 +229,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={() => setShowScans(!showScans)}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
             showScans
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/15 text-success border-success/30'
               : 'bg-surface-elevated/60 text-text-muted border-border hover:text-text-primary'
           }`}
         >
@@ -251,7 +251,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           onClick={toggleWallCutaway}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
             wallMode === 'cutaway'
-              ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
+              ? 'bg-accent/10 text-accent border-accent/30'
               : 'bg-surface-elevated/60 text-text-secondary border-border hover:text-text-primary'
           }`}
         >

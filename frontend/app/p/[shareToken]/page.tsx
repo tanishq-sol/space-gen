@@ -93,7 +93,7 @@ export default function PresentationPage() {
               <figure key={h.id} className="relative overflow-hidden rounded border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={h.url} alt={h.caption || 'AI render'} referrerPolicy="no-referrer" className="w-full" />
-                <figcaption className="absolute left-2 top-2 rounded bg-black/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">AI render</figcaption>
+                <figcaption className="absolute left-2 top-2 rounded bg-surface-elevated px-2 py-0.5 text-[11px] font-medium text-text-primary">AI render</figcaption>
               </figure>
             ))}
           </section>

@@ -292,12 +292,12 @@ export default function ProjectEditorPage() {
   return <EditorLayout onShare={() => setShareOpen(true)}>
     <div className="absolute left-3 top-3 z-50 flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow"><Link href="/projects" className="text-accent">Projects</Link><span className="font-medium">{document.manifest.name}</span><span aria-live="polite" className={status === 'error' || status === 'conflict' ? 'text-red-500' : 'text-text-muted'}>{label}</span><button onClick={() => void saveNowRef.current?.()} disabled={status === 'conflict'} className="rounded bg-accent px-3 py-1 text-white disabled:opacity-50">Save</button><button aria-pressed={reviewMode} onClick={() => setReviewMode(v => !v)} className={`rounded border px-3 py-1 ${reviewMode ? 'border-accent text-accent' : 'border-border'}`}>Review scan</button><button onClick={() => setDrawingsOpen(true)} className="rounded border border-border px-3 py-1">Drawings</button>{error && status !== 'conflict' && <span role="alert" className="text-red-500">{error}</span>}</div>
     {status === 'conflict' && (
-      <div role="alertdialog" aria-label="Save conflict" className="absolute left-1/2 top-16 z-50 w-[420px] -translate-x-1/2 rounded-lg border border-red-500/50 bg-surface p-4 text-sm shadow-xl">
-        <p className="font-medium text-red-400">This project was saved elsewhere.</p>
+      <div role="alertdialog" aria-label="Save conflict" className="absolute left-1/2 top-16 z-50 w-[420px] -translate-x-1/2 rounded-lg border border-error bg-surface p-4 text-sm shadow-xl">
+        <p className="font-medium text-error">This project was saved elsewhere.</p>
         <p className="mt-1 text-text-muted">{error} Reload the latest version (discarding this tab&apos;s unsaved changes) or overwrite it with this tab&apos;s version.</p>
         <div className="mt-3 flex justify-end gap-2">
           <button onClick={() => void reloadLatest()} className="rounded border border-border px-3 py-1">Reload latest</button>
-          <button onClick={() => void overwrite()} className="rounded bg-red-600 px-3 py-1 text-white">Overwrite</button>
+          <button onClick={() => void overwrite()} className="rounded bg-error px-3 py-1 text-white">Overwrite</button>
         </div>
       </div>
     )}

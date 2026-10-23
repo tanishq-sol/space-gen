@@ -328,7 +328,7 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
   if (initError) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-background text-text-muted p-6">
-        <p className="text-red-400 font-medium mb-2">Error initializing 3D Workspace</p>
+        <p className="text-error font-medium mb-2">Error initializing 3D Workspace</p>
         <p className="text-xs text-text-muted max-w-md text-center">{initError}</p>
       </div>
     );
@@ -338,7 +338,7 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-background text-text-muted gap-3">
         <Loader2 className="w-6 h-6 animate-spin text-accent" />
-        <span className="text-xs font-mono">Mounting Pascal 3D Architectural Systems...</span>
+        <span className="text-xs">Loading the room…</span>
       </div>
     );
   }

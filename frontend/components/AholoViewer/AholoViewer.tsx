@@ -689,7 +689,7 @@ export const AholoViewer: React.FC<AholoViewerProps> = ({
             zIndex: 30,
           }}
         >
-          <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+          <Loader2 className="w-6 h-6 text-accent animate-spin" />
           <span>{loadingStage || 'Loading 3D asset...'}</span>
         </div>
       )}
@@ -717,7 +717,7 @@ export const AholoViewer: React.FC<AholoViewerProps> = ({
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
           }}
         >
-          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: '#fee2e2', marginBottom: '2px' }}>
               Model Load Error

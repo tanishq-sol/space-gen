@@ -15,7 +15,7 @@ const SceneViewer = dynamic(
       <div className="w-full h-full flex items-center justify-center bg-background text-text-muted">
         <div className="flex flex-col items-center gap-3">
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-mono">Loading Pascal 3D workspace...</span>
+          <span className="text-xs">Loading the room…</span>
         </div>
       </div>
     ),

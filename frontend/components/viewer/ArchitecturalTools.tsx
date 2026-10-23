@@ -123,7 +123,7 @@ function SnapIndicator() {
         <div
           data-testid="snap-indicator"
           data-snap-kind={snap.kind}
-          className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold text-white"
+          className="whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-semibold text-text-primary"
           style={{ background: color }}
         >
           {SNAP_LABELS[snap.kind]}

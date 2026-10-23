@@ -383,15 +383,15 @@ export const SplatBackgroundCanvas: React.FC<SplatBackgroundCanvasProps> = ({
       <canvas ref={canvasRef} data-testid="splat-canvas" className="w-full h-full block" />
       {errorMsg && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-red-950/60 p-6 text-red-200 pointer-events-none">
-          <div className="max-w-lg bg-black/90 p-5 border border-red-500 rounded-xl shadow-2xl font-mono text-xs pointer-events-auto">
-            <h4 className="text-sm font-bold text-red-400 mb-2 flex items-center gap-2">
+          <div className="max-w-lg bg-surface-elevated p-5 border border-error rounded-xl shadow-2xl font-mono text-xs pointer-events-auto">
+            <h4 className="text-sm font-bold text-error mb-2 flex items-center gap-2">
               <span>⚠</span> Scan load failed
             </h4>
             <p className="leading-relaxed text-red-200/90">{errorMsg}</p>
             <div className="mt-4 pt-3 border-t border-red-900/60 flex justify-end">
               <button
                 onClick={() => setErrorMsg(null)}
-                className="px-3 py-1 bg-red-700/80 hover:bg-red-600 text-white rounded text-xs transition-colors"
+                className="px-3 py-1 bg-error hover:bg-error/90 text-white rounded text-xs transition-colors"
               >
                 Dismiss Error
               </button>

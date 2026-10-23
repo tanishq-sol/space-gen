@@ -138,9 +138,9 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
   return (
     <div className="absolute bottom-5 left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-sm">
       <div className="flex items-center gap-2 p-2 rounded-xl bg-surface/90 border border-border backdrop-blur-md shadow-lg text-xs">
-        <Sparkles size={14} className="text-emerald-400" />
+        <Sparkles size={14} className="text-success" />
         <span className="font-semibold text-text-primary">Detected Scan Objects:</span>
-        <span className="text-text-muted text-[11px] font-mono">
+        <span className="text-text-muted text-[11px]">
           ({detectedObjects.length - extractedObjectIds.size} un-extracted)
         </span>
       </div>
@@ -157,20 +157,20 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
               onMouseLeave={() => setHoveredObjectId(null)}
               className={`p-2.5 rounded-xl border backdrop-blur-md transition-all ${
                 isExtracted
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 text-xs'
+                  ? 'bg-success-muted border-success/30 text-success text-xs'
                   : isHovered
-                  ? 'bg-surface-elevated/95 border-accent shadow-lg shadow-accent/10 text-text-primary'
+                  ? 'bg-surface-elevated/95 border-accent text-text-primary'
                   : 'bg-surface/80 border-border/80 text-text-secondary'
               }`}
             >
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium truncate">{obj.label}</span>
                 {isExtracted ? (
-                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                  <span className="flex items-center gap-1 text-[11px] text-success">
                     <Check size={11} /> Extracted & Masked
                   </span>
                 ) : (
-                  <span className="text-[10px] text-text-muted font-mono">
+                  <span className="text-[11px] text-text-muted">
                     {Math.round(obj.confidence * 100)}% conf
                   </span>
                 )}
@@ -180,7 +180,7 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
                 <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/50">
                   <button
                     onClick={() => handleExtractSingle(obj)}
-                    className="flex-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-accent text-white hover:bg-accent-light transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-accent text-white hover:bg-accent-light transition-colors flex items-center justify-center gap-1"
                   >
                     <Box size={10} />
                     <span>Extract Mesh</span>
@@ -188,7 +188,7 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
 
                   <button
                     onClick={() => handleEraseOnly(obj)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-medium bg-surface hover:bg-red-500/15 text-text-muted hover:text-red-400 border border-border transition-colors flex items-center gap-1"
+                    className="px-2 py-1 rounded-lg text-[11px] font-medium bg-surface hover:bg-red-500/15 text-text-muted hover:text-error border border-border transition-colors flex items-center gap-1"
                   >
                     <Eraser size={10} />
                     <span>Erase Splat</span>

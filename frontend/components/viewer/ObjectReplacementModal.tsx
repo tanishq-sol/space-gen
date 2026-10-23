@@ -102,7 +102,7 @@ export function ObjectReplacementModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -224,7 +224,7 @@ export function ObjectReplacementModal() {
                           {item.name}
                         </span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-muted font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-muted font-medium">
                         {item.style}
                       </span>
                     </div>
@@ -233,7 +233,7 @@ export function ObjectReplacementModal() {
                       {item.description}
                     </p>
 
-                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50 text-[10px] text-text-muted">
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50 text-[11px] text-text-muted">
                       <span>
                         {item.dimensions.width_m}m × {item.dimensions.depth_m || item.dimensions.width_m}m × {item.dimensions.height_m}m
                       </span>
@@ -270,7 +270,7 @@ export function ObjectReplacementModal() {
                 <p className="text-xs text-text-muted max-w-sm mb-4">
                   Drag and drop or browse for a custom 3D asset to swap directly into this object&apos;s position.
                 </p>
-                <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent text-white shadow-lg shadow-accent/25 hover:brightness-110 transition-all">
+                <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent text-white transition-all">
                   Browse Files
                 </span>
               </label>
@@ -315,7 +315,7 @@ export function ObjectReplacementModal() {
                       key={chip}
                       type="button"
                       onClick={() => setAiPrompt(chip)}
-                      className="px-2.5 py-1 rounded-lg text-[10px] bg-surface-elevated hover:bg-accent/20 hover:text-accent border border-border transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-[11px] bg-surface-elevated hover:bg-accent/20 hover:text-accent border border-border transition-colors"
                     >
                       {chip}
                     </button>
@@ -327,7 +327,7 @@ export function ObjectReplacementModal() {
                 type="button"
                 onClick={handleAiGenerate}
                 disabled={!aiPrompt.trim() || isGenerating}
-                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-accent to-purple-600 text-white shadow-lg shadow-accent/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
+                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-accent hover:bg-accent-dark text-white disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
               >
                 {isGenerating ? (
                   <>
