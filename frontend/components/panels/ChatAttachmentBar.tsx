@@ -104,7 +104,7 @@ export function ChatAttachmentBar({
               <button
                 onClick={() => onQuickReplace(selectedNodeId!)}
                 title="Replace selected 3D item with this photo"
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white hover:bg-accent-light text-[11px] font-medium shadow-sm transition-all"
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white hover:bg-accent-light text-[11px] font-medium shadow-sm transition"
               >
                 <ArrowRightLeft size={10} />
                 <span>Swap In</span>

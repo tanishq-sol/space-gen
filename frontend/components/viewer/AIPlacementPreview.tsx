@@ -57,7 +57,7 @@ export function AIPlacementPreview() {
             <button
               onClick={acceptAllCandidatePlacements}
               title="Accept all proposed placements into the scene graph"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-[11px] font-semibold transition-all"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-[11px] font-semibold transition"
             >
               <CheckCheck size={13} />
               <span>Accept All</span>
@@ -109,7 +109,7 @@ export function AIPlacementPreview() {
                     <button
                       onClick={() => acceptCandidatePlacement(candidate.id)}
                       title="Keep this placement"
-                      className="p-1 rounded-md bg-emerald-500/15 text-success hover:bg-emerald-500 hover:text-white transition-all"
+                      className="p-1 rounded-md bg-success-muted text-success hover:bg-success hover:text-white transition"
                     >
                       <Check size={12} />
                     </button>

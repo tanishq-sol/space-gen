@@ -61,7 +61,7 @@ export function EditorLayout({ children, onShare }: { children: React.ReactNode;
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setCaptureOpen(true)} 
-            className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-all hover:bg-accent/20 hover:border-accent/50"
+            className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/20 hover:border-accent/50"
           >
             <Box size={13} />
             Import / Scenes

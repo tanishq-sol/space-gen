@@ -155,7 +155,7 @@ export function ScanSegmentationOverlay({ onReplaceWithAI }: ScanSegmentationOve
               key={obj.id}
               onMouseEnter={() => setHoveredObjectId(obj.id)}
               onMouseLeave={() => setHoveredObjectId(null)}
-              className={`p-2.5 rounded-xl border backdrop-blur-md transition-all ${
+              className={`p-2.5 rounded-xl border backdrop-blur-md transition ${
                 isExtracted
                   ? 'bg-success-muted border-success/30 text-success text-xs'
                   : isHovered

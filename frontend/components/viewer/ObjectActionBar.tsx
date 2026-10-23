@@ -56,7 +56,7 @@ export function ObjectActionBar() {
             <button
               onClick={() => setGizmoMode('translate')}
               title="Translate (W) - Move along X, Y, Z axes"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'translate'
                   ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -70,7 +70,7 @@ export function ObjectActionBar() {
             <button
               onClick={() => setGizmoMode('rotate')}
               title="Rotate (E) - Turn across all angles"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'rotate'
                   ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -84,7 +84,7 @@ export function ObjectActionBar() {
             <button
               onClick={() => setGizmoMode('scale')}
               title="Scale (R) - Resize object"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'scale'
                   ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -99,7 +99,7 @@ export function ObjectActionBar() {
           {/* Action: Replace Object */}
           <button
             onClick={() => setShowReplacementModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-accent hover:bg-accent-dark text-white active:scale-95 transition-all ml-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-accent hover:bg-accent-dark text-white active:scale-95 transition ml-1"
           >
             <Sparkles size={13} />
             <span>Replace Model</span>

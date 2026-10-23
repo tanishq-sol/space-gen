@@ -222,11 +222,10 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
         </div>
         <div className="flex items-center gap-1.5">
           {selectedIds.length > 0 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent">
               {selectedIds.length} selected
             </span>
           )}
-          <span className="badge-accent">Gemini 2.5</span>
         </div>
       </div>
 
@@ -239,13 +238,13 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
             className="space-y-3 pt-2"
           >
             <div className="p-3 rounded-xl bg-surface-elevated/40 border border-border/60 text-xs text-text-secondary leading-relaxed">
-              <span className="font-semibold text-accent-light block mb-1">
-                Spatial Co-Pilot Active
+              <span className="font-semibold text-text-primary block mb-1">
+                Ask about this room
               </span>
               Ask me to add, move, replace or remove furniture, or attach a reference photo or .glb model. I propose edits; nothing changes until you accept.
             </div>
 
-            <p className="text-[11px] text-text-muted text-center font-medium">Quick spatial actions</p>
+            <p className="text-[11px] text-text-muted text-center font-medium">Try asking</p>
             <div className="grid grid-cols-1 gap-1.5">
               {quickActions.map((action) => (
                 <button
@@ -254,7 +253,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
                     setInput(action);
                     inputRef.current?.focus();
                   }}
-                  className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-all duration-150 flex items-center justify-between group"
+                  className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition duration-150 flex items-center justify-between group"
                 >
                   <span className="truncate">{action}</span>
                   <Sparkles size={11} className="text-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1" />
@@ -335,7 +334,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Describe design changes, move objects, or ask AI..."
-            className="w-full bg-surface-elevated border border-border rounded-xl py-2.5 pl-10 pr-12 text-sm focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all placeholder:text-text-muted text-text-primary"
+            className="w-full bg-surface-elevated border border-border rounded-xl py-2.5 pl-10 pr-12 text-sm focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition placeholder:text-text-muted text-text-primary"
           />
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -401,7 +400,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
               <span>Review the scan so I can place against walls. Unreviewed walls are ignored until you verify them.</span>
             </span>
             {onOpenReview && (
-              <button onClick={onOpenReview} className="self-start px-2 py-0.5 rounded-md bg-amber-500 text-black font-medium">
+              <button onClick={onOpenReview} className="self-start px-2 py-0.5 rounded-md bg-warning text-white font-medium">
                 Open Review mode
               </button>
             )}
@@ -433,7 +432,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
                 ) : (
                   <button
                     onClick={handleUndo}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition-all shadow-sm"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition shadow-sm"
                   >
                     <Undo2 size={12} />
                     <span>Undo AI Changes</span>
@@ -451,7 +450,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
 const SEVERITY_STYLE: Record<Violation['severity'], string> = {
   error: 'text-error',
   warning: 'text-warning',
-  info: 'text-sky-400',
+  info: 'text-info',
 };
 
 function ProposalList({

@@ -243,7 +243,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-2 -mb-px">
               <button
                 onClick={() => setActiveTab('video')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'video'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -254,7 +254,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={() => setActiveTab('import_model')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'import_model'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -265,7 +265,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={() => setActiveTab('library')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'library'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -297,7 +297,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         onClick={() => setReconstructMode('fast')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                           reconstructMode === 'fast'
                             ? 'bg-accent text-white shadow-sm'
                             : 'text-text-muted hover:text-text-primary'
@@ -308,7 +308,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         onClick={() => setReconstructMode('quality')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                           reconstructMode === 'quality'
                             ? 'bg-accent text-white shadow-sm'
                             : 'text-text-muted hover:text-text-primary'
@@ -326,7 +326,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     onDragOver={(e) => { e.preventDefault(); setVideoDragging(true) }}
                     onDragLeave={() => setVideoDragging(false)}
                     onDrop={(e) => { e.preventDefault(); setVideoDragging(false); chooseVideo(e.dataTransfer.files[0]) }}
-                    className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition-all ${
+                    className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition ${
                       videoDragging ? 'border-accent bg-accent/10' : 'border-border hover:border-accent/60 hover:bg-surface-elevated/40'
                     }`}
                   >
@@ -345,7 +345,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       onClick={loadDemoVideo}
-                      className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-all"
+                      className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition"
                     >
                       <Sparkles size={13} />
                       Load verified sample video (Living Room Scan · 5.6 MB)
@@ -367,7 +367,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     <button
                       onClick={startReconstruction}
                       disabled={!file}
-                      className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Cpu size={15} /> Start reconstruction
                     </button>
@@ -386,7 +386,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
 
                   <div className="mb-6 h-2 overflow-hidden rounded-full bg-surface-elevated">
                     <div
-                      className="h-full rounded-full bg-accent transition-all duration-500"
+                      className="h-full rounded-full bg-accent transition duration-500"
                       style={{ width: `${job.progress}%` }}
                     />
                   </div>
@@ -477,7 +477,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                 onDragOver={(e) => { e.preventDefault(); setModelDragging(true) }}
                 onDragLeave={() => setModelDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setModelDragging(false); chooseModel(e.dataTransfer.files[0]) }}
-                className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 transition-all ${
+                className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 transition ${
                   modelDragging ? 'border-accent bg-accent/10' : 'border-border hover:border-accent/60 hover:bg-surface-elevated/40'
                 }`}
               >
@@ -529,7 +529,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={handleInstantPreview}
                     disabled={!modelFile}
-                    className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40 transition-all"
+                    className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40 transition"
                   >
                     <Zap size={14} /> Instant Preview (0s)
                   </button>
@@ -537,7 +537,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={handleUploadAndSave}
                     disabled={!modelFile || isUploadingModel}
-                    className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent disabled:opacity-40 transition-all"
+                    className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-40 transition"
                   >
                     {isUploadingModel ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                     Upload & Save
@@ -573,7 +573,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <div
                         key={m.job_id}
                         onClick={() => handleSelectExistingModel(m)}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border cursor-pointer transition ${
                           isCurrent
                             ? 'border-accent bg-accent/10 ring-1 ring-accent'
                             : 'border-border bg-surface-elevated/40 hover:border-accent/50 hover:bg-surface-elevated'

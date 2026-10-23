@@ -285,7 +285,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={item.id}
                       onClick={() => handleSelectNode(item.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === item.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
@@ -316,7 +316,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   expandedSections.has('walls') ? 'rotate-90' : ''
                 }`}
               />
-              <Box size={13} className="text-blue-400" />
+              <Box size={13} className="text-accent" />
               <span>Walls ({walls.length})</span>
             </button>
 
@@ -332,7 +332,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={wall.id}
                       onClick={() => handleSelectNode(wall.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === wall.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
@@ -379,7 +379,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <div
                       key={scan.id}
                       onClick={() => handleSelectNode(scan.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition ${
                         activeId === scan.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
@@ -433,7 +433,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={slab.id}
                       onClick={() => handleSelectNode(slab.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === slab.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
@@ -447,7 +447,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={zone.id}
                       onClick={() => handleSelectNode(zone.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === zone.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'

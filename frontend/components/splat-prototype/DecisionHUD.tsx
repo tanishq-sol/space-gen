@@ -107,7 +107,7 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
         <div className="grid grid-cols-1 gap-1.5 mt-1 text-xs">
           <button
             onClick={() => onChangeOption('option_c')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_c'
                 ? 'bg-emerald-950/60 border-success/30 text-emerald-200'
                 : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
@@ -126,7 +126,7 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_a')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_a'
                 ? 'bg-red-950/60 border-error text-red-200'
                 : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
@@ -143,7 +143,7 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_b')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_b'
                 ? 'bg-amber-950/60 border-warning text-amber-200'
                 : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
@@ -160,7 +160,7 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_d')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_d'
                 ? 'bg-purple-950/60 border-accent/80 text-accent'
                 : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
@@ -237,7 +237,7 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
             <button
               onClick={() => onToggleOcclusionProxy(!showOcclusionProxy)}
               className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                showOcclusionProxy ? 'bg-cyan-600 justify-end' : 'bg-border justify-start'
+                showOcclusionProxy ? 'bg-accent justify-end' : 'bg-border justify-start'
               }`}
             >
               <span className="w-4 h-4 bg-white rounded-full shadow" />
