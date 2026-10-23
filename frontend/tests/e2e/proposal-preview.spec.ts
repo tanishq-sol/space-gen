@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { clickMoreAction, openMoreActions } from './support/editor';
 import { test, expect, type Page } from '@playwright/test';
 import type { ScreenRect } from '@/components/viewer/E2ECameraHooks';
 import type { ProjectManifest } from '@/lib/contracts';
@@ -159,11 +160,10 @@ test('unreviewed walls: the chat says to review the scan and opens Review mode',
 
   await page.goto(`/editor/${id}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  const reviewToggle = page.getByRole('button', { name: 'Review scan' });
-  await reviewToggle.click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' }).getByTestId('trust-warning')).toContainText('unreviewed');
-  await reviewToggle.click();
+  await clickMoreAction(page, 'Review scan');
 
   const input = page.getByPlaceholder('Describe design changes, move objects, or ask AI...');
   await input.fill('add a chair');
@@ -172,5 +172,5 @@ test('unreviewed walls: the chat says to review the scan and opens Review mode',
   await expect(hint).toBeVisible();
   await hint.getByRole('button', { name: 'Open Review mode' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' })).toBeVisible();
-  await expect(reviewToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openMoreActions(page)).getByRole('button', { name: 'Review scan', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

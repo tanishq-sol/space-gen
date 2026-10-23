@@ -31,24 +31,11 @@ export default function EditorPage() {
   }, [clearActiveModel]);
 
   return (
-    <EditorLayout>
-      {/* Left Rail - 280px: Pascal Hierarchical Node Outliner & Live Inspector */}
-      <div className="w-[280px] border-r border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden">
-        <ScenePanel />
-      </div>
-
-      {/* Center 3D Viewport - Pascal <Viewer> + EditorToolbar */}
-      <div className="flex-1 bg-background relative overflow-hidden h-full">
-        <SceneViewer
-          selectedId={selectedObjectId}
-          onSelectObject={setSelectedObjectId}
-        />
-      </div>
-
-      {/* Right Rail - 380px: AI Spatial Workspace Panel */}
-      <div className="w-[380px] border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden">
-        <ChatPanel />
-      </div>
+    <EditorLayout scenePanel={<ScenePanel />} askPanel={<ChatPanel />}>
+      <SceneViewer
+        selectedId={selectedObjectId}
+        onSelectObject={setSelectedObjectId}
+      />
     </EditorLayout>
   );
 }

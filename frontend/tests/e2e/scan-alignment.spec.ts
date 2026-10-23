@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import { screenshotPath } from './support/artifacts';
+import { clickToolOverflow, openToolOverflow } from './support/editor';
 
 test.describe('T05: Scan Alignment & Splat Layer Integration', () => {
   test('mounts dual-canvas, loads scan, executes alignment workflow, and captures before/after screenshots', async ({
@@ -39,9 +40,8 @@ test.describe('T05: Scan Alignment & Splat Layer Integration', () => {
     expect(fs.existsSync(beforeScreenshotPath)).toBe(true);
 
     // 5. Open Scan Alignment Tool from toolbar
-    const alignScanButton = page.getByRole('button', { name: 'Align Scan' });
-    await expect(alignScanButton).toBeVisible({ timeout: 10000 });
-    await alignScanButton.click({ force: true });
+    await expect((await openToolOverflow(page)).getByRole('button', { name: 'Align Scan', exact: true })).toBeVisible({ timeout: 10000 });
+    await clickToolOverflow(page, { name: 'Align Scan' }, { force: true });
 
     // Verify ScanAlignmentTool panel is mounted
     await expect(page.locator('text=Align room scan')).toBeVisible({ timeout: 5000 });
@@ -73,7 +73,7 @@ test.describe('T05: Scan Alignment & Splat Layer Integration', () => {
     await page.waitForTimeout(500);
 
     // Close alignment tool by toggling toolbar button
-    await alignScanButton.click({ force: true });
+    await clickToolOverflow(page, { name: 'Align Scan' }, { force: true });
     await expect(page.locator('text=Align room scan')).not.toBeVisible({ timeout: 5000 });
   });
 });

@@ -206,9 +206,9 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
   ];
 
   return (
-    <div className="flex flex-col h-full bg-surface text-text-primary">
+    <div className="flex min-h-0 flex-1 flex-col text-text-primary">
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between shrink-0 bg-surface/80 backdrop-blur-md">
+      <div className="p-4 pr-12 border-b border-border flex items-center justify-between shrink-0 lg:pr-12">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-surface-elevated flex items-center justify-center">
             <Sparkles size={14} className="text-text-primary" />
@@ -288,7 +288,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
               <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0">
                 <Sparkles size={11} className="text-text-primary" />
               </div>
-              <div className="glass px-4 py-2.5 rounded-2xl rounded-tl-sm border border-border/80 flex items-center gap-2">
+              <div className="bg-surface-elevated px-4 py-2.5 rounded-2xl rounded-tl-sm border border-border/80 flex items-center gap-2">
                 <Loader2 size={13} className="animate-spin text-accent" />
                 <span className="text-xs text-text-secondary">
                   Planning edit proposals...
@@ -309,7 +309,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
       />
 
       {/* Input area */}
-      <div className="p-4 border-t border-border shrink-0 bg-surface/90">
+      <div className="p-4 border-t border-border shrink-0">
         <input
           ref={fileInputRef}
           type="file"
@@ -363,7 +363,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
   return (
     <div className={`flex gap-2.5 max-w-[95%] ${isUser ? 'ml-auto flex-row-reverse' : ''}`}>
       {!isUser && (
-        <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+        <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 mt-0.5">
           <Sparkles size={10} className="text-text-primary" />
         </div>
       )}
@@ -372,7 +372,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
           className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
             isUser
               ? 'bg-accent text-white rounded-tr-sm'
-              : 'glass rounded-tl-sm border border-border/80 text-text-primary'
+              : 'bg-surface-elevated rounded-tl-sm border border-border/80 text-text-primary'
           }`}
         >
           {message.content}
@@ -432,7 +432,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
                 ) : (
                   <button
                     onClick={handleUndo}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition shadow-sm"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition"
                   >
                     <Undo2 size={12} />
                     <span>Undo AI Changes</span>

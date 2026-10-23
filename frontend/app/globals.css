@@ -50,8 +50,20 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
   }
 
+  /* The compact bottom sheet is regular glass below 1024px; above that its panels are glass themselves. */
+  @media (max-width: 1023.98px) {
+    .sheet-glass {
+      background: rgba(255, 255, 255, 0.88);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid theme('colors.hairline');
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 32px rgba(11, 31, 58, 0.12);
+    }
+  }
+
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass,
+    .sheet-glass,
     .glass-clear {
       background: theme('colors.paper');
     }
@@ -59,6 +71,7 @@
 
   @media (prefers-reduced-transparency: reduce) {
     .glass,
+    .sheet-glass,
     .glass-clear {
       background: theme('colors.paper');
       -webkit-backdrop-filter: none;
@@ -68,12 +81,42 @@
 
   @media (prefers-contrast: more) {
     .glass,
+    .sheet-glass,
     .glass-clear {
       background: theme('colors.paper');
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
       border: 1px solid theme('colors.ink');
       box-shadow: none;
+    }
+  }
+
+  /* Segmented control: the active segment is a neutral raised chip, never navy. */
+  .seg {
+    @apply inline-flex gap-0.5 rounded-control bg-ink/[0.06] p-0.5;
+  }
+
+  .seg-item {
+    @apply inline-flex h-7 items-center justify-center rounded-md px-3 text-[13px] font-medium text-slate transition-colors duration-150 hover:text-ink;
+  }
+
+  .seg-item[aria-pressed='true'] {
+    @apply bg-paper font-semibold text-ink;
+    box-shadow: 0 0 0 1px theme('colors.hairline'), 0 1px 2px rgba(11, 31, 58, 0.08);
+  }
+
+  /* Icon button for floating bars */
+  .icon-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-control text-slate transition-colors duration-150 hover:bg-ink/5 hover:text-ink disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  /* Touch: 44px targets on compact widths and coarse pointers */
+  @media (max-width: 1023.98px), (pointer: coarse) {
+    .seg-item {
+      @apply h-10;
+    }
+    .icon-btn {
+      @apply h-11 w-11;
     }
   }
 

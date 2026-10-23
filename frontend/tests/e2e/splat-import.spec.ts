@@ -5,6 +5,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { screenshotPath, waitForE2EHooks } from './support/artifacts';
 import { API_URL, getProject } from './support/projects';
+import { clickMoreAction, openMoreActions, clickToolOverflow } from './support/editor';
 
 // N1: upload a splat → conversion job → review → build editable room → save → reload, on the real backend.
 const BACKEND_DIR = path.join(__dirname, '..', '..', '..', 'backend');
@@ -45,7 +46,7 @@ test('splat import: upload .ply → conversion → review 4 walls → build edit
 
   // 1. Import: upload to the project asset store and run the conversion job.
   await openProject(page, projectId);
-  await page.getByTitle(/Convert Scan to Editable Space/).click();
+  await clickToolOverflow(page, { title: /Convert Scan to Editable Space/ });
   const dialog = page.getByRole('dialog', { name: 'Import scan' });
   await dialog.getByLabel('Splat file').setInputFiles(ply);
   await dialog.getByRole('button', { name: 'Upload & convert' }).click();
@@ -54,7 +55,8 @@ test('splat import: upload .ply → conversion → review 4 walls → build edit
   // 2. Review mode opens with the backend's interpretation, auto-levelled.
   const review = page.getByRole('region', { name: 'Scan review' });
   await expect(review).toContainText('4 walls');
-  await expect(page.getByRole('button', { name: 'Review scan' })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openMoreActions(page)).getByRole('button', { name: 'Review scan', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape'); // close the More menu so it does not cover the Ask panel
   await frameRoom(page);
 
   // 3. Build editable room → Pascal walls/slab/openings.
@@ -84,7 +86,7 @@ test('splat import: upload .ply → conversion → review 4 walls → build edit
 
   // 5. Reload: the editable room is still there and the scan renders.
   await openProject(page, projectId);
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await expect(page.getByRole('region', { name: 'Scan review' }).getByRole('list', { name: 'Review items' }).locator('li').filter({ hasText: /^Wall / })).toHaveCount(4);
   await page.waitForFunction(() => (window.__spacegenSplat?.numSplats() ?? 0) > 0, undefined, { timeout: 60000 });
 });
