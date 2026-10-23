@@ -222,9 +222,9 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
   const totalCount = Object.keys(nodes).length;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden text-text-primary bg-surface select-none">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-text-primary select-none">
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+      <div className="px-4 pb-3 pt-2 border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center border border-border">
             <Layers size={13} className="text-text-secondary" />
