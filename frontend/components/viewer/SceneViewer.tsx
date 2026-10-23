@@ -35,6 +35,7 @@ import { ProposalGhosts } from './ProposalGhosts';
 import { pendingPreviewMasks, useProposalPreviews } from '@/lib/pascal/proposalPreview';
 import { InterpretationOverlay } from './InterpretationOverlay';
 import { ArchitecturalTools, armArchitecturalTool, useArchitecturalSnap } from './ArchitecturalTools';
+import { useEditor } from '@/lib/pascal/pascalEditor';
 import { installArchitecturalSync } from '@/lib/pascal/architecturalSync';
 import { planFeaturePoints } from '@/lib/pascal/scanSnapping';
 import { useSpaceGenStore } from '@/lib/store';
@@ -246,6 +247,7 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
   const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<ActiveTool>('select');
+  const drawing = useEditor((s) => s.mode === 'build' && s.tool !== null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [isAligningScan, setIsAligningScan] = useState(false);
   const [isPickingScanPoint, setIsPickingScanPoint] = useState(false);
@@ -404,7 +406,8 @@ export function SceneViewer({ selectedId, onSelectObject, reviewMode = false, pr
         onPickerReady={handlePickerReady}
       />
       <Viewer perf={false} useBvh={true} transparent>
-        <OrbitControls makeDefault target={SCAN_FOCUS_TARGET} enableDamping={false} enabled={!walking} />
+        {/* While a drawing tool is armed, left-drag belongs to the tool (-1 = no action); right/middle still orbit and pan. */}
+        <OrbitControls makeDefault target={SCAN_FOCUS_TARGET} enableDamping={false} enabled={!walking} mouseButtons={{ LEFT: drawing ? (-1 as THREE.MOUSE) : THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }} />
         {E2E_HOOKS_ENABLED && <E2ECameraHooks />}
         <CameraReaderRegistrar />
         <PascalLayerFade />

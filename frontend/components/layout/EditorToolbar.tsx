@@ -29,6 +29,7 @@ type ToolIcon = typeof Square;
 const PASCAL_TOOLS: Array<{ tool: ArchitecturalTool; label: string; title: string; Icon: ToolIcon }> = [
   { tool: 'wall', label: 'Wall', title: 'Draw a wall, snapped to scan corners and wall faces', Icon: Square },
   { tool: 'slab', label: 'Slab', title: 'Draw a floor slab', Icon: Grid3X3 },
+  { tool: 'zone', label: 'Zone', title: 'Draw a zone (room area)', Icon: Shapes },
   { tool: 'door', label: 'Door', title: 'Place a door on a wall', Icon: DoorOpen },
   { tool: 'window', label: 'Window', title: 'Place a window on a wall', Icon: AppWindow },
   { tool: 'measurement', label: 'Measure', title: 'Measure a distance (scan estimate)', Icon: Ruler },
@@ -127,7 +128,6 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         toolButton(tool, label, title, Icon, activePascalTool === tool, () => armArchitecturalTool(activePascalTool === tool ? null : tool), activePascalTool === tool),
       )}
 
-      {toolButton('zone', 'Zone', 'Zone Definition Tool (Z)', Shapes, activeTool === 'zone', () => selectTool('zone'))}
       {toolButton('item', 'Item', 'Furniture & Door/Window Placement (I)', Armchair, activeTool === 'item', () => selectTool('item'))}
 
       {divider}
