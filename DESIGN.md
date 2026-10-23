@@ -212,4 +212,4 @@ Reference screenshots of the current UI: `docs/proposal-preview.png`, `docs/walk
 
 ## Viewport imagery in the mock
 
-`docs/design/mock/viewport.png` is the top 1280x718 px of `docs/presentation.png`, a real capture of the product's presentation view with the e2e fixture room (a splat scan with a detected chair proxy). It is cropped by script, not edited. A live capture from a running app was not made.
+`docs/design/mock/viewport.png` comes from `docs/presentation.png`, a real capture of the product's presentation view of the e2e fixture room (a splat scan with a detected chair proxy). It is the 1280x662 crop from y=56 to y=718, which drops the screenshot's caption pill, and the screenshot's "Items" card in the top right is retouched by linear interpolation of the pixels around it (that corner sits under the Ask panel). Nothing else is edited. A live capture from a running app was not made: the app build in a worktree needed a webpack build and a local backend, and that was stopped on instruction. The scan is soft because the splat is low resolution.
