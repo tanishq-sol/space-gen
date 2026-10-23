@@ -20,13 +20,13 @@ Next.js (App Router) with React 19 and Tailwind 3 in `frontend/`; the 3D editor 
 
 ## Product Purpose
 
-SpaceGen turns a physical room into a persistent, conversationally editable digital twin: Capture, Reconstruct, Understand, Select, Ask, Generate, Validate, Explore, Compare, Present (README.md). A designer uploads a Gaussian-splat scan or a walkthrough video, gets walls, floor and openings as editable architecture and (with the GPU worker) furniture as movable objects, asks the AI for changes, previews each proposal as a ghost before applying it, keeps design variants, and presents the result.
+Ellips turns a physical room into a persistent, conversationally editable digital twin: Capture, Reconstruct, Understand, Select, Ask, Generate, Validate, Explore, Compare, Present (README.md). A designer uploads a Gaussian-splat scan or a walkthrough video, gets walls, floor and openings as editable architecture and (with the GPU worker) furniture as movable objects, asks the AI for changes, previews each proposal as a ghost before applying it, keeps design variants, and presents the result.
 
 Success is a designer who trusts what is on screen enough to quote it to a client, and a client who understands the proposal without a walkthrough from the designer.
 
 ## Positioning
 
-The room stays the source of truth. Other tools start from an empty plan or a render; SpaceGen starts from the real scan, shows every size as an estimate with its error (`≈ 2.35 m (±4 cm est.)`), and lets AI propose changes in the room itself. The estimate and its error band are the product's honesty, and it must never be rounded into a false exact number (docs/accuracy.md).
+The room stays the source of truth. Other tools start from an empty plan or a render; Ellips starts from the real scan, shows every size as an estimate with its error (`≈ 2.35 m (±4 cm est.)`), and lets AI propose changes in the room itself. The estimate and its error band are the product's honesty, and it must never be rounded into a false exact number (docs/accuracy.md).
 
 ## Operating Context
 
@@ -54,7 +54,7 @@ The room stays the source of truth. Other tools start from an empty plan or a re
 
 ## Brand Commitments
 
-- Name: SpaceGen. Visual direction chosen by the owner: light only, white and navy, subtle, Apple-inspired, frosted Liquid Glass, and it must not look AI-made.
+- Name: Ellips. Visual direction chosen by the owner: light only, white and navy, subtle, Apple-inspired, frosted Liquid Glass, and it must not look AI-made.
 - Voice: plain verbs, sentence case, no filler, errors that say how to fix them. [inferred from the plan's Phase 4 clarify rules]
 - No logo asset exists beyond the current text wordmark; the gradient mark is a placeholder to be replaced.
 

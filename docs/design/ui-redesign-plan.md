@@ -1,15 +1,15 @@
-# SpaceGen UI redesign plan: "Vellum over blueprint"
+# Ellips UI redesign plan: "Vellum over blueprint"
 
 Status: plan, not started. Brief from the owner: subtle, Apple-inspired, Liquid Glass / frosted look, white and navy palettes, must not look AI-made.
 
-## 1. The idea (why this look belongs to SpaceGen and no one else)
+## 1. The idea (why this look belongs to Ellips and no one else)
 
-SpaceGen's users are architects and interior designers working on a scanned room. Their world has two materials that match the brief exactly:
+Ellips's users are architects and interior designers working on a scanned room. Their world has two materials that match the brief exactly:
 
 - **Blueprint**: navy ink, white linework, dimension lines. This is the navy palette.
 - **Drafting vellum and frosted architectural glass**: a translucent sheet laid over a drawing so you can still see it. This is the frosted glass.
 
-So the interface is a sheet of vellum laid over the scan: the room stays in charge, the controls float on frosted panels above it, and the ink is navy. The one memorable element (the "signature") is the **measurement**: SpaceGen already shows every size as `≈ 3.42 m ±2 cm`. Those labels get a drafted dimension-line style (thin ticks, tabular figures) and appear everywhere sizes appear (object bar, drawings, walls, share page). Everything else stays quiet.
+So the interface is a sheet of vellum laid over the scan: the room stays in charge, the controls float on frosted panels above it, and the ink is navy. The one memorable element (the "signature") is the **measurement**: Ellips already shows every size as `≈ 3.42 m ±2 cm`. Those labels get a drafted dimension-line style (thin ticks, tabular figures) and appear everywhere sizes appear (object bar, drawings, walls, share page). Everything else stays quiet.
 
 ## 2. What is wrong now (measured in the code)
 
@@ -91,7 +91,7 @@ The scan goes full-bleed; panels float over it as glass sheets that can be colla
 ```text
 Regular (≥1280px)
 ┌──────────────────────────────────────────────────────────────┐
-│ ◖ SpaceGen  Living room ▾       Orbit|Walk  Splat|Mesh|Both   Share ◗ │  ← glass toolbar
+│ ◖ Ellips  Living room ▾       Orbit|Walk  Splat|Mesh|Both   Share ◗ │  ← glass toolbar
 │ ┌─────────┐                                       ┌────────────┐ │
 │ │ Scene   │                                       │ Ask        │ │
 │ │ objects │          3D scan, full bleed          │ proposals  │ │

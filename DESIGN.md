@@ -1,5 +1,5 @@
 ---
-name: SpaceGen
+name: Ellips
 description: Vellum over blueprint. A light, frosted interface laid over the scanned room, with navy ink and one drafted measurement signature.
 colors:
   vellum: "#F5F7FA"
@@ -71,13 +71,13 @@ components:
     padding: "12px 16px"
 ---
 
-# Design System: SpaceGen
+# Design System: Ellips
 
 This file describes the NEW design system defined in `docs/design/ui-redesign-plan.md`. The system is not implemented in `frontend/` yet. The current UI is recorded only as the anti-reference at the end. Product truth lives in `PRODUCT.md`. A static direction mock is in `docs/design/mock/editor.html`, and its tokens are checked by `docs/design/mock/contrast.mjs`.
 
 ## Overview
 
-**Creative North Star: "Vellum over blueprint."** SpaceGen's users work on a scanned room. Their two materials are the blueprint (navy ink, white linework, dimension lines) and drafting vellum or frosted architectural glass (a translucent sheet laid over a drawing so the drawing stays visible). The interface is a sheet of vellum laid over the scan: the room stays in charge, controls float on frosted panels above it, and the ink is navy.
+**Creative North Star: "Vellum over blueprint."** Ellips's users work on a scanned room. Their two materials are the blueprint (navy ink, white linework, dimension lines) and drafting vellum or frosted architectural glass (a translucent sheet laid over a drawing so the drawing stays visible). The interface is a sheet of vellum laid over the scan: the room stays in charge, controls float on frosted panels above it, and the ink is navy.
 
 **Key characteristics:**
 
