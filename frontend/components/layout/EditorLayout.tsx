@@ -347,7 +347,7 @@ export function EditorLayout({ children, scenePanel, askPanel, onShare, projectN
           <button type="button" aria-label="Collapse Ask panel" title="Collapse Ask panel" onClick={() => togglePanel('right')} className="icon-btn absolute right-2 top-2 z-10 max-lg:hidden">
             <PanelRight size={16} aria-hidden />
           </button>
-          <div className="flex min-h-0 flex-1 flex-col">{askPanel}</div>
+          <div className="flex min-h-0 flex-1 flex-col [&>*]:!h-auto [&>*]:min-h-0 [&>*]:flex-1">{askPanel}</div>
         </aside>
       </div>
 
