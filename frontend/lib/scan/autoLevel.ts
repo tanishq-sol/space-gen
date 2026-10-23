@@ -27,7 +27,7 @@ export function autoLevelFromPoints(positions: Float32Array, opacity?: Float32Ar
   const rand = lcg(1);
   let up = estimateUp(pts, rand);
   let h = pts.map((p) => dot(p, up));
-  let peaks = planePeaks(h);
+  const peaks = planePeaks(h);
   if (!peaks.length) return null;
   let lo = Math.min(...peaks);
   let hi = Math.max(...peaks);
