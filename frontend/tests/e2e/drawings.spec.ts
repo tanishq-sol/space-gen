@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { screenshotPath } from './support/artifacts';
+import { clickMoreAction } from './support/editor';
 
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/realistic_room.json'), 'utf-8'));
 
@@ -25,11 +26,11 @@ test('fixture project -> Drawings: dimensioned plan, elevations, SVG export', as
 
   await page.goto(`/editor/${id}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' }).getByTestId('status-wall_north')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Drawings', exact: true }).click();
+  await clickMoreAction(page, 'Drawings');
   const panel = page.getByRole('region', { name: 'Drawings' });
   const sheet = panel.getByTestId('drawing-sheet');
   await expect(sheet.locator('svg[data-drawing="plan"]')).toBeVisible();

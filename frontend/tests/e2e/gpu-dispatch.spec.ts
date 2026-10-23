@@ -5,6 +5,7 @@ import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { screenshotPath, waitForE2EHooks } from './support/artifacts';
 import { API_URL, getProject } from './support/projects';
+import { clickToolOverflow } from './support/editor';
 
 // N2/N3 on the real backend with GPU_WORKER_MODE=fake (playwright.config.ts): import a synthetic splat
 // with a sofa, table and lamp → structure → objects (local worker process, CPU pipeline, real GLBs) →
@@ -42,7 +43,7 @@ test('gpu dispatch (fake worker): splat import → objects stage → Pascal item
   const projectId = (await created.json()).manifest.id as string;
 
   await openProject(page, projectId);
-  await page.getByTitle(/Convert Scan to Editable Space/).click();
+  await clickToolOverflow(page, { title: /Convert Scan to Editable Space/ });
   const dialog = page.getByRole('dialog', { name: 'Import scan' });
   await dialog.getByLabel('Splat file').setInputFiles(syntheticFurnishedRoomPly());
   await dialog.getByRole('button', { name: 'Upload & convert' }).click();

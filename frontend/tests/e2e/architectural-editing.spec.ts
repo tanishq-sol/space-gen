@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { ProjectManifest } from '@/lib/contracts';
 import { screenshotPath, waitForE2EHooks } from './support/artifacts';
+import { clickMoreAction } from './support/editor';
 
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/realistic_room.json'), 'utf-8'));
 type Vec3 = [number, number, number];
@@ -14,9 +15,10 @@ async function screenOf(page: Page, point: Vec3) {
 
 async function topView(page: Page) {
   await waitForE2EHooks(page);
+  // The side panels float over the scan, so the plan is framed in the gap between them.
   // A plan view from above the ceiling is outside the room, so interior confinement must be lifted.
   await page.getByRole('group', { name: 'Scene kind' }).getByRole('button', { name: 'Exterior' }).click();
-  await page.evaluate(() => window.__spacegenE2E!.setCamera([4, 10, 9], [4, 0, 3]));
+  await page.evaluate(() => window.__spacegenE2E!.setCamera([4.8, 10, 9], [4.8, 0, 3]));
 }
 
 async function hover(page: Page, point: Vec3) {
@@ -51,10 +53,10 @@ test('draw a wall snapped to a corner, add a door, measure, undo/redo, save, rel
 
   await page.goto(`/editor/${id}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' }).getByTestId('status-wall_north')).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
 
   await topView(page);
   const tool = (name: string) => page.getByRole('button', { name, exact: true });
@@ -125,7 +127,7 @@ test('draw a wall snapped to a corner, add a door, measure, undo/redo, save, rel
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
   await topView(page);
   await expect(page.getByTestId('measurement-label')).toHaveText('≈ 6.0 m (±14 cm est.)');
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   const review = page.getByRole('region', { name: 'Scan review' });
   await expect(review.getByTestId(`status-${drawn.id}`)).toHaveText('corrected · user');
   await expect(review.getByTestId(`status-${door.id}`)).toHaveText('corrected · user');

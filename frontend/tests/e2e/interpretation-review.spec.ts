@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { ProjectManifest } from '@/lib/contracts';
 import { screenshotPath } from './support/artifacts';
+import { clickMoreAction } from './support/editor';
 
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/realistic_room.json'), 'utf-8'));
 
@@ -28,7 +29,7 @@ test('user fixes a wrong wall and a misplaced detection, saves, reloads, and the
 
   await page.goto(`/editor/${id}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
 
   const review = page.getByRole('region', { name: 'Scan review' });
@@ -88,7 +89,7 @@ test('user fixes a wrong wall and a misplaced detection, saves, reloads, and the
 
   await page.reload();
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   const reloaded = page.getByRole('region', { name: 'Scan review' });
   await expect(reloaded.getByRole('button', { name: 'Build editable room from scan' })).toHaveCount(0);
   await expect(reloaded.getByTestId('status-wall_east')).toHaveText('corrected · user');

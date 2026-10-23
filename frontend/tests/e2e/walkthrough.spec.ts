@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { ProjectManifest } from '@/lib/contracts';
 import { screenshotPath, waitForE2EHooks } from './support/artifacts';
+import { clickMoreAction } from './support/editor';
 
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/realistic_room.json'), 'utf-8'));
 type Vec3 = [number, number, number];
@@ -30,10 +31,10 @@ async function openBuiltRoom(page: Page, { loadSplat }: { loadSplat: boolean }) 
   });
   await page.goto(`/editor/${id}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' }).getByTestId('status-wall_north')).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await waitForE2EHooks(page);
   return { puts: () => manifest };
 }
@@ -223,7 +224,7 @@ test('presentation viewer keeps clients inside the room and offers Walk', async 
   await page.route('**/*.sog', (route) => route.abort());
   await page.goto(`/editor/${projectId}`);
   await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review scan' }).click();
+  await clickMoreAction(page, 'Review scan');
   await page.getByRole('button', { name: 'Build editable room from scan' }).click();
   await expect(page.getByRole('region', { name: 'Scan review' }).getByTestId('status-wall_north')).toBeVisible();
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 30000 });
