@@ -199,6 +199,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
     );
   };
 
+  const sendQuickAction = (event: React.MouseEvent<HTMLButtonElement>) => handleSend(event.currentTarget.value);
   const quickActions = [
     'Move the sofa 0.5m closer to the coffee table',
     'Move the sofa against the long wall',
@@ -250,7 +251,8 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
               {quickActions.map((action) => (
                 <button
                   key={action}
-                  onClick={() => handleSend(action)}
+                  value={action}
+                  onClick={sendQuickAction}
                   className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition duration-150 flex items-center justify-between group"
                 >
                   <span className="truncate">{action}</span>
