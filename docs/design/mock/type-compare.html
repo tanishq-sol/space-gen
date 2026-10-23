@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpaceGen display face comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Instrument+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --vellum:#F5F7FA; --paper:#fff; --ink:#0B1F3A; --navy:#1B3A6B; --slate:#4D6080; --hairline:#DDE3EC;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable",system-ui,sans-serif; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--vellum); color: var(--ink); font: 400 15px/1.45 var(--sys); padding: 32px 24px 48px; }
+h1.page { font: 600 13px/1.4 var(--sys); color: var(--slate); margin-bottom: 4px; }
+p.lead { color: var(--slate); max-width: 70ch; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1200px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--paper); border: 1px solid var(--hairline); border-radius: 14px; padding: 24px; display: grid; gap: 28px; align-content: start; }
+.tag { font: 600 11px/1.4 var(--sys); color: var(--slate); }
+.tag b { color: var(--ink); }
+.proj { display: grid; gap: 6px; }
+.proj .t { font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -.01em; }
+.proj .m { font: 400 13px/1.4 var(--sys); color: var(--slate); font-variant-numeric: tabular-nums; }
+.share { display: grid; gap: 8px; padding-top: 20px; border-top: 1px solid var(--hairline); }
+.share .t { font-size: 40px; line-height: 1.08; font-weight: 600; letter-spacing: -.02em; }
+.share .m { font: 400 15px/1.45 var(--sys); color: var(--slate); }
+.share .n { font: 600 13px/1 var(--sys); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.share .n small { font-weight: 500; font-size: 11px; color: var(--slate); }
+.hk .t { font-family: "Hanken Grotesk", var(--sys); }
+.is .t { font-family: "Instrument Sans", var(--sys); }
+.sy .t { font-family: var(--sys); }
+.sy .share .t { letter-spacing: -.015em; }
+.verdict { max-width: 1200px; margin-top: 24px; background: var(--paper); border: 1px solid var(--hairline); border-radius: 14px; padding: 20px 24px; }
+.verdict h2 { font: 600 15px/1.3 var(--sys); margin-bottom: 8px; }
+.verdict li { margin: 4px 0 4px 18px; color: var(--ink); }
+</style>
+</head>
+<body>
+<h1 class="page">Display face for the projects header and the share-page title</h1>
+<p class="lead">Only these two places use a display face; everything else is the system stack. Same copy, same size, same weight in each column.</p>
+
+<div class="grid">
+  <section class="card hk" aria-label="Hanken Grotesk">
+    <span class="tag"><b>Hanken Grotesk</b> 600</span>
+    <div class="proj"><div class="t">Living room</div><div class="m">Saved 2 minutes ago, 4 walls, 4 objects, 2 variants</div></div>
+    <div class="share"><div class="t">Living room, proposed layout</div><div class="m">Shared with you by Maya Iyer. Move around the scan and compare the two variants.</div><div class="n">North wall ≈ 4.12 m <small>±3 cm</small></div></div>
+  </section>
+  <section class="card is" aria-label="Instrument Sans">
+    <span class="tag"><b>Instrument Sans</b> 600</span>
+    <div class="proj"><div class="t">Living room</div><div class="m">Saved 2 minutes ago, 4 walls, 4 objects, 2 variants</div></div>
+    <div class="share"><div class="t">Living room, proposed layout</div><div class="m">Shared with you by Maya Iyer. Move around the scan and compare the two variants.</div><div class="n">North wall ≈ 4.12 m <small>±3 cm</small></div></div>
+  </section>
+  <section class="card sy" aria-label="System stack">
+    <span class="tag"><b>System UI stack</b> 600 (SF Pro on Mac, Segoe UI Variable on Windows)</span>
+    <div class="proj"><div class="t">Living room</div><div class="m">Saved 2 minutes ago, 4 walls, 4 objects, 2 variants</div></div>
+    <div class="share"><div class="t">Living room, proposed layout</div><div class="m">Shared with you by Maya Iyer. Move around the scan and compare the two variants.</div><div class="n">North wall ≈ 4.12 m <small>±3 cm</small></div></div>
+  </section>
+</div>
+
+<section class="verdict">
+  <h2>Recommendation: Hanken Grotesk 600</h2>
+  <ul>
+    <li>Measured at 40px/600 for "Living room, proposed layout": Hanken Grotesk 501px, system stack 512px, Instrument Sans 522px. Hanken sets the most compact title, so long room and project names wrap later on a phone, and it is the closest in width to the system face the rest of the UI uses.</li>
+    <li>The measurement label stays in the system face with tabular figures either way, so the display face never touches numbers.</li>
+    <li>It is a neutral face for a client-facing page about someone else's room: it does not add its own personality over the scan. Instrument Sans has the more distinctive letterforms, which would suit a landing page later but competes with the scan on a share page.</li>
+    <li>Cost: one extra font file, loaded only on two routes (self-host the 600 weight with <code>font-display: swap</code>; the fallback is the system stack, so there is no layout shift beyond a width tweak).</li>
+  </ul>
+</section>
+</body>
+</html>
