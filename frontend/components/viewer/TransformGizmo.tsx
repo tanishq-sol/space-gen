@@ -22,12 +22,11 @@ export function TransformGizmo() {
 
   useEffect(() => {
     if (!selectedObjectId || useScene.getState().nodes[asNodeId(selectedObjectId)]?.type !== 'item') return
-    let attempts = 0
     let frame = 0
     const findRegisteredItem = () => {
       const object = sceneRegistry.nodes.get(selectedObjectId)
       if (object) setFound({ id: selectedObjectId, object })
-      else if (attempts++ < 30) frame = requestAnimationFrame(findRegisteredItem)
+      else frame = requestAnimationFrame(findRegisteredItem) // GLB items register only after their model loads, which can take seconds
     }
     findRegisteredItem()
     return () => cancelAnimationFrame(frame)
@@ -72,5 +71,5 @@ export function TransformGizmo() {
   }, [target, selectedObjectId, gizmoMode])
 
   if (!selectedObjectId || !target) return null
-  return <TransformControls ref={transformRef} object={target} mode={gizmoMode} size={0.85} space="local" />
+  return <TransformControls ref={transformRef} object={target} mode={gizmoMode} size={0.85} space="local" showX={gizmoMode !== "rotate"} showY={gizmoMode !== "translate"} showZ={gizmoMode !== "rotate"} />
 }
