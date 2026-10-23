@@ -47,7 +47,7 @@ export function ObjectActionBar() {
             <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
             <div className="flex flex-col">
               <span className="text-xs font-semibold text-text-primary capitalize leading-tight">{objName}</span>
-              <span className="text-[10px] text-text-muted capitalize">{objCategory}</span>
+              <span className="text-[11px] text-text-muted capitalize">{objCategory}</span>
             </div>
           </div>
 
@@ -56,50 +56,50 @@ export function ObjectActionBar() {
             <button
               onClick={() => setGizmoMode('translate')}
               title="Translate (W) - Move along X, Y, Z axes"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'translate'
-                  ? 'bg-accent text-white shadow-md shadow-accent/30'
+                  ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
               }`}
             >
               <Move size={13} />
               <span>Move</span>
-              <span className="text-[9px] opacity-60 font-mono">W</span>
+              <span className="text-[11px] opacity-60">W</span>
             </button>
 
             <button
               onClick={() => setGizmoMode('rotate')}
               title="Rotate (E) - Turn across all angles"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'rotate'
-                  ? 'bg-accent text-white shadow-md shadow-accent/30'
+                  ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
               }`}
             >
               <RotateCw size={13} />
               <span>Rotate</span>
-              <span className="text-[9px] opacity-60 font-mono">E</span>
+              <span className="text-[11px] opacity-60">E</span>
             </button>
 
             <button
               onClick={() => setGizmoMode('scale')}
               title="Scale (R) - Resize object"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 gizmoMode === 'scale'
-                  ? 'bg-accent text-white shadow-md shadow-accent/30'
+                  ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
               }`}
             >
               <Maximize2 size={13} />
               <span>Scale</span>
-              <span className="text-[9px] opacity-60 font-mono">R</span>
+              <span className="text-[11px] opacity-60">R</span>
             </button>
           </div>
 
           {/* Action: Replace Object */}
           <button
             onClick={() => setShowReplacementModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-gradient-to-r from-accent/90 to-purple-600/90 text-white shadow-lg shadow-accent/25 hover:brightness-110 active:scale-95 transition-all ml-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-accent hover:bg-accent-dark text-white active:scale-95 transition ml-1"
           >
             <Sparkles size={13} />
             <span>Replace Model</span>

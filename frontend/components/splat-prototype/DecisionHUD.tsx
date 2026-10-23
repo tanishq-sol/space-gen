@@ -50,47 +50,47 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
   return (
     <div className="absolute top-4 left-4 z-20 flex flex-col gap-3 max-w-sm pointer-events-auto">
       {/* 1. Header & Live Metrics Card */}
-      <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-4 shadow-2xl text-slate-100">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="bg-surface backdrop-blur-md border border-border rounded-xl p-4 shadow-2xl text-text-primary">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <h3 className="font-semibold text-xs tracking-wider uppercase text-slate-200">
+            <Sparkles className="w-4 h-4 text-success" />
+            <h3 className="font-semibold text-xs text-text-primary">
               Splat & Pascal Integration
             </h3>
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-success-muted text-success border border-success/30">
             PROTOTYPE
           </span>
         </div>
 
         {/* Live Metrics Grid */}
         <div className="grid grid-cols-3 gap-2 mt-3 pt-1">
-          <div className="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-              <Activity className="w-3 h-3 text-emerald-400" />
+          <div className="bg-surface-elevated p-2 rounded-lg border border-border">
+            <div className="flex items-center gap-1 text-[11px] text-text-secondary">
+              <Activity className="w-3 h-3 text-success" />
               <span>FPS</span>
             </div>
-            <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
+            <div className="text-base font-bold text-success mt-0.5">
               {currentOption === 'option_c' && isLoaded ? fps : '—'}
             </div>
           </div>
 
-          <div className="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-              <Box className="w-3 h-3 text-cyan-400" />
+          <div className="bg-surface-elevated p-2 rounded-lg border border-border">
+            <div className="flex items-center gap-1 text-[11px] text-text-secondary">
+              <Box className="w-3 h-3 text-accent" />
               <span>Splats</span>
             </div>
-            <div className="text-sm font-mono font-bold text-cyan-300 mt-1">
+            <div className="text-sm font-bold text-accent mt-1">
               {isLoaded ? splatCount.toLocaleString() : 'Loading…'}
             </div>
           </div>
 
-          <div className="bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-              <FileCode className="w-3 h-3 text-purple-400" />
+          <div className="bg-surface-elevated p-2 rounded-lg border border-border">
+            <div className="flex items-center gap-1 text-[11px] text-text-secondary">
+              <FileCode className="w-3 h-3 text-accent" />
               <span>Format</span>
             </div>
-            <div className="text-[11px] font-mono font-semibold text-purple-300 truncate mt-1" title={format}>
+            <div className="text-[11px] font-semibold text-accent truncate mt-1" title={format}>
               {format || '.sog'}
             </div>
           </div>
@@ -98,27 +98,27 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
       </div>
 
       {/* 2. Architecture Candidates Evaluation Selector */}
-      <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-4 shadow-2xl text-slate-100 flex flex-col gap-2">
-        <label className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-indigo-400" />
+      <div className="bg-surface backdrop-blur-md border border-border rounded-xl p-4 shadow-2xl text-text-primary flex flex-col gap-2">
+        <label className="text-[11px] font-semibold text-text-primary flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-accent" />
           Evaluate Architecture Candidates
         </label>
 
         <div className="grid grid-cols-1 gap-1.5 mt-1 text-xs">
           <button
             onClick={() => onChangeOption('option_c')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_c'
-                ? 'bg-emerald-950/60 border-emerald-500/80 text-emerald-200'
-                : 'bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80'
+                ? 'bg-emerald-950/60 border-success/30 text-emerald-200'
+                : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
             }`}
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-success mt-0.5 shrink-0" />
             <div>
               <div className="font-semibold text-xs flex items-center gap-1.5">
                 (c) Dual-Canvas Synced (Recommended)
               </div>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] text-text-secondary mt-0.5 leading-snug">
                 Spark WebGL2 background + Pascal WebGPU foreground. .sog support, OBB masking. FPS above is measured live.
               </p>
             </div>
@@ -126,16 +126,16 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_a')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_a'
-                ? 'bg-red-950/60 border-red-500/80 text-red-200'
-                : 'bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80'
+                ? 'bg-red-950/60 border-error text-red-200'
+                : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-error mt-0.5 shrink-0" />
             <div>
               <div className="font-semibold text-xs">(a) Spark inside WebGPURenderer</div>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] text-text-secondary mt-0.5 leading-snug">
                 Attempts Spark on a three/webgpu WebGPURenderer in this browser and shows the actual result.
               </p>
             </div>
@@ -143,16 +143,16 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_b')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_b'
-                ? 'bg-amber-950/60 border-amber-500/80 text-amber-200'
-                : 'bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80'
+                ? 'bg-amber-950/60 border-warning text-amber-200'
+                : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
             <div>
               <div className="font-semibold text-xs">(b) Force Pascal to WebGL + Spark</div>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] text-text-secondary mt-0.5 leading-snug">
                 Attempts Spark on WebGPURenderer with forceWebGL: true and shows the actual result.
               </p>
             </div>
@@ -160,16 +160,16 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
           <button
             onClick={() => onChangeOption('option_d')}
-            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition-all ${
+            className={`flex items-start gap-2.5 p-2 rounded-lg border text-left transition ${
               currentOption === 'option_d'
-                ? 'bg-purple-950/60 border-purple-500/80 text-purple-200'
-                : 'bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80'
+                ? 'bg-purple-950/60 border-accent/80 text-accent'
+                : 'bg-surface-elevated border-border text-text-primary hover:bg-surface-elevated'
             }`}
           >
-            <FileCode className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+            <FileCode className="w-4 h-4 text-accent mt-0.5 shrink-0" />
             <div>
               <div className="font-semibold text-xs">(d) Native WebGPU Splatting</div>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] text-text-secondary mt-0.5 leading-snug">
                 Shared depth buffer, but no open-source .sog decoder in WGSL; requires custom radix compute sorter.
               </p>
             </div>
@@ -179,22 +179,22 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
 
       {/* 3. Interactive Depth, Occlusion & Masking Controls */}
       {currentOption === 'option_c' && (
-        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-4 shadow-2xl text-slate-100 flex flex-col gap-3">
-          <label className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="bg-surface backdrop-blur-md border border-border rounded-xl p-4 shadow-2xl text-text-primary flex flex-col gap-3">
+          <label className="text-[11px] font-semibold text-text-primary flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5 text-accent" />
             Interactive Depth & Masking Verification
           </label>
 
           {/* Depth Position Switch */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-slate-400">GLB Item Depth Placement</span>
-            <div className="grid grid-cols-2 gap-1.5 bg-slate-800/60 p-1 rounded-lg border border-slate-700/50">
+            <span className="text-[11px] text-text-secondary">GLB Item Depth Placement</span>
+            <div className="grid grid-cols-2 gap-1.5 bg-surface-elevated p-1 rounded-lg border border-border">
               <button
                 onClick={() => onChangeDepthMode('front')}
                 className={`py-1 px-2 rounded text-xs font-medium transition-colors ${
                   itemDepthMode === 'front'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-success text-text-primary shadow'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 In Front (Room)
@@ -203,8 +203,8 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
                 onClick={() => onChangeDepthMode('behind')}
                 className={`py-1 px-2 rounded text-xs font-medium transition-colors ${
                   itemDepthMode === 'behind'
-                    ? 'bg-amber-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-amber-600 text-text-primary shadow'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 Behind Scan Wall
@@ -213,12 +213,12 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
           </div>
 
           {/* Model Selector */}
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
-            <span className="text-slate-400">Item Model:</span>
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
+            <span className="text-text-secondary">Item Model:</span>
             <select
               value={itemType}
               onChange={(e) => onChangeItemType(e.target.value as DecisionHUDProps['itemType'])}
-              className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
+              className="bg-surface-elevated border border-border rounded px-2 py-1 text-text-primary text-xs focus:outline-none focus:border-cyan-500"
             >
               <option value="chair">Modern Chair</option>
               <option value="sofa">Lounge Sofa</option>
@@ -227,17 +227,17 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
           </div>
 
           {/* Depth Occlusion Proxy Toggle */}
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
             <div>
-              <span className="text-slate-200 font-medium">Depth Occlusion Proxy</span>
-              <p className="text-[10px] text-slate-400 leading-tight">
+              <span className="text-text-primary font-medium">Depth Occlusion Proxy</span>
+              <p className="text-[11px] text-text-secondary leading-tight">
                 colorWrite: false, depthWrite: true
               </p>
             </div>
             <button
               onClick={() => onToggleOcclusionProxy(!showOcclusionProxy)}
               className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                showOcclusionProxy ? 'bg-cyan-600 justify-end' : 'bg-slate-700 justify-start'
+                showOcclusionProxy ? 'bg-accent justify-end' : 'bg-border justify-start'
               }`}
             >
               <span className="w-4 h-4 bg-white rounded-full shadow" />
@@ -245,17 +245,17 @@ export const DecisionHUD: React.FC<DecisionHUDProps> = ({
           </div>
 
           {/* OBB Crop Volume Masking Toggle */}
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
             <div>
-              <span className="text-slate-200 font-medium">Per-Region OBB Masking</span>
-              <p className="text-[10px] text-slate-400 leading-tight">
+              <span className="text-text-primary font-medium">Per-Region OBB Masking</span>
+              <p className="text-[11px] text-text-secondary leading-tight">
                 SplatEdit SDF Box (opacity: 0)
               </p>
             </div>
             <button
               onClick={() => onToggleMasking(!enableMasking)}
               className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                enableMasking ? 'bg-emerald-600 justify-end' : 'bg-slate-700 justify-start'
+                enableMasking ? 'bg-success justify-end' : 'bg-border justify-start'
               }`}
             >
               <span className="w-4 h-4 bg-white rounded-full shadow" />

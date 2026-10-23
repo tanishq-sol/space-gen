@@ -11,9 +11,9 @@ const SplatPrototypeView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-300 gap-3">
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-background text-text-primary gap-3">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-mono tracking-wider">
+        <span className="text-xs">
           Initializing Splat Rendering Decision Prototype...
         </span>
       </div>
@@ -23,7 +23,7 @@ const SplatPrototypeView = dynamic(
 
 export default function SplatPrototypePage() {
   return (
-    <main className="w-screen h-screen overflow-hidden bg-slate-950">
+    <main className="w-screen h-screen overflow-hidden bg-background">
       <SplatPrototypeView />
     </main>
   );

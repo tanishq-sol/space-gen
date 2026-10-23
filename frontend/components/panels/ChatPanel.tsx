@@ -210,23 +210,22 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between shrink-0 bg-surface/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-brand flex items-center justify-center shadow-md shadow-accent/20">
-            <Sparkles size={14} className="text-white" />
+          <div className="w-7 h-7 rounded-lg bg-surface-elevated flex items-center justify-center">
+            <Sparkles size={14} className="text-text-primary" />
           </div>
           <div>
-            <h2 className="font-semibold text-sm leading-tight">Spatial AI Co-Pilot</h2>
-            <p className="text-[10px] text-text-muted leading-tight font-mono">
-              Pascal BIM & Gaussian Splat Studio
+            <h2 className="font-semibold text-sm leading-tight">Ask</h2>
+            <p className="text-[11px] text-text-muted leading-tight">
+              Describe a change to the room
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           {selectedIds.length > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25 font-mono">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent">
               {selectedIds.length} selected
             </span>
           )}
-          <span className="badge-accent">Gemini 2.5</span>
         </div>
       </div>
 
@@ -239,13 +238,13 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
             className="space-y-3 pt-2"
           >
             <div className="p-3 rounded-xl bg-surface-elevated/40 border border-border/60 text-xs text-text-secondary leading-relaxed">
-              <span className="font-semibold text-accent-light block mb-1">
-                Spatial Co-Pilot Active
+              <span className="font-semibold text-text-primary block mb-1">
+                Ask about this room
               </span>
               Ask me to add, move, replace or remove furniture, or attach a reference photo or .glb model. I propose edits; nothing changes until you accept.
             </div>
 
-            <p className="text-[11px] text-text-muted text-center font-medium">Quick spatial actions</p>
+            <p className="text-[11px] text-text-muted text-center font-medium">Try asking</p>
             <div className="grid grid-cols-1 gap-1.5">
               {quickActions.map((action) => (
                 <button
@@ -254,7 +253,7 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
                     setInput(action);
                     inputRef.current?.focus();
                   }}
-                  className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-all duration-150 flex items-center justify-between group"
+                  className="px-3 py-2 text-xs text-left rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 text-text-secondary hover:text-text-primary transition duration-150 flex items-center justify-between group"
                 >
                   <span className="truncate">{action}</span>
                   <Sparkles size={11} className="text-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1" />
@@ -286,12 +285,12 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
               exit={{ opacity: 0 }}
               className="flex gap-3 max-w-[90%]"
             >
-              <div className="w-6 h-6 rounded-lg bg-gradient-brand flex items-center justify-center shrink-0">
-                <Sparkles size={11} className="text-white" />
+              <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0">
+                <Sparkles size={11} className="text-text-primary" />
               </div>
-              <div className="glass-elevated px-4 py-2.5 rounded-2xl rounded-tl-sm border border-border/80 flex items-center gap-2">
+              <div className="glass px-4 py-2.5 rounded-2xl rounded-tl-sm border border-border/80 flex items-center gap-2">
                 <Loader2 size={13} className="animate-spin text-accent" />
-                <span className="text-xs text-text-secondary font-mono">
+                <span className="text-xs text-text-secondary">
                   Planning edit proposals...
                 </span>
               </div>
@@ -335,14 +334,14 @@ export function ChatPanel({ projectId, onAssetUploaded, onOpenReview }: ChatPane
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Describe design changes, move objects, or ask AI..."
-            className="w-full bg-surface-elevated border border-border rounded-xl py-2.5 pl-10 pr-12 text-sm focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all placeholder:text-text-muted text-text-primary"
+            className="w-full bg-surface-elevated border border-border rounded-xl py-2.5 pl-10 pr-12 text-sm focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition placeholder:text-text-muted text-text-primary"
           />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleSend}
             disabled={(!input.trim() && !attachedFile) || isLoading}
-            className="absolute right-2 p-1.5 bg-accent hover:bg-accent-dark disabled:bg-surface-elevated disabled:text-text-muted text-white rounded-lg transition-colors shadow-sm shadow-accent/20"
+            className="absolute right-2 p-1.5 bg-accent hover:bg-accent-dark disabled:bg-surface-elevated disabled:text-text-muted text-white rounded-lg transition-colors"
           >
             <Send size={13} />
           </motion.button>
@@ -364,16 +363,16 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
   return (
     <div className={`flex gap-2.5 max-w-[95%] ${isUser ? 'ml-auto flex-row-reverse' : ''}`}>
       {!isUser && (
-        <div className="w-6 h-6 rounded-lg bg-gradient-brand flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-          <Sparkles size={10} className="text-white" />
+        <div className="w-6 h-6 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+          <Sparkles size={10} className="text-text-primary" />
         </div>
       )}
       <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
         <div
           className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
             isUser
-              ? 'bg-accent text-white rounded-tr-sm shadow-sm shadow-accent/20'
-              : 'glass-elevated rounded-tl-sm border border-border/80 text-text-primary'
+              ? 'bg-accent text-white rounded-tr-sm'
+              : 'glass rounded-tl-sm border border-border/80 text-text-primary'
           }`}
         >
           {message.content}
@@ -384,7 +383,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-xl overflow-hidden border border-border max-w-[260px] shadow-card group"
+            className="rounded-xl overflow-hidden border border-border max-w-[260px] group"
           >
             <img
               src={message.image}
@@ -395,13 +394,13 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
         )}
 
         {message.reviewHint && (
-          <div role="note" className="w-full max-w-[320px] p-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-300 flex flex-col gap-1.5">
+          <div role="note" className="w-full max-w-[320px] p-2 rounded-lg border border-warning bg-warning-muted text-[11px] text-warning flex flex-col gap-1.5">
             <span className="flex items-start gap-1">
               <AlertTriangle size={11} className="shrink-0 mt-0.5" />
               <span>Review the scan so I can place against walls. Unreviewed walls are ignored until you verify them.</span>
             </span>
             {onOpenReview && (
-              <button onClick={onOpenReview} className="self-start px-2 py-0.5 rounded-md bg-amber-500 text-black font-medium">
+              <button onClick={onOpenReview} className="self-start px-2 py-0.5 rounded-md bg-warning text-white font-medium">
                 Open Review mode
               </button>
             )}
@@ -416,7 +415,7 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
             {message.toolResults.map((tr, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success-muted border border-success/30 text-success text-[11px]"
               >
                 <CheckCircle2 size={12} className="shrink-0" />
                 <span className="truncate">{tr.message}</span>
@@ -427,13 +426,13 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
             {message.canUndo && (
               <div className="pt-1">
                 {undone ? (
-                  <span className="text-[10px] text-text-muted font-mono italic">
+                  <span className="text-[11px] text-text-muted italic">
                     AI Changes Reverted
                   </span>
                 ) : (
                   <button
                     onClick={handleUndo}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition-all shadow-sm"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-elevated hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition shadow-sm"
                   >
                     <Undo2 size={12} />
                     <span>Undo AI Changes</span>
@@ -449,9 +448,9 @@ function ChatMessage({ message, onOpenReview }: { message: ChatMessageType; onOp
 }
 
 const SEVERITY_STYLE: Record<Violation['severity'], string> = {
-  error: 'text-red-400',
-  warning: 'text-amber-400',
-  info: 'text-sky-400',
+  error: 'text-error',
+  warning: 'text-warning',
+  info: 'text-info',
 };
 
 function ProposalList({
@@ -489,12 +488,12 @@ function ProposalList({
       {entries.map(({ proposal: p, meta, ghostId, status }) => (
         <div key={p.id} role="group" aria-label={`Proposal: ${p.op} ${meta.label}`} className="p-2 rounded-lg border border-border bg-surface-elevated/60 text-[11px] flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono uppercase text-accent">{p.op}</span>
+            <span className="text-accent">{p.op}</span>
             <span className="truncate text-text-primary">{meta.label}</span>
             {p.validation.ok ? (
-              <CheckCircle2 size={12} className="text-emerald-400 shrink-0" aria-label="Valid placement" />
+              <CheckCircle2 size={12} className="text-success shrink-0" aria-label="Valid placement" />
             ) : (
-              <XCircle size={12} className="text-red-400 shrink-0" aria-label="Blocking violations" />
+              <XCircle size={12} className="text-error shrink-0" aria-label="Blocking violations" />
             )}
           </div>
           <p className="text-text-secondary leading-snug">{p.rationale}</p>
@@ -528,7 +527,7 @@ function ProposalList({
               )}
             </div>
           ) : (
-            <span className="text-text-muted font-mono">{status}</span>
+            <span className="text-text-muted">{status}</span>
           )}
         </div>
       ))}
@@ -541,7 +540,7 @@ function ProposalList({
           <span>Accept all ({acceptable.length})</span>
         </button>
       )}
-      {error && <p className="text-red-400 text-[11px]">{error}</p>}
+      {error && <p className="text-error text-[11px]">{error}</p>}
       {entries.some((e) => e.status === 'accepted') && (
         <button
           onClick={() => undoSceneAction()}

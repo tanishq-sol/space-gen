@@ -85,9 +85,9 @@ export function InterpretationReviewPanel({ interpretation, scan, maskRegions }:
       <div className="border-b border-border p-3">
         <h2 className="text-sm font-semibold">Scan review</h2>
         {trusted.warning ? (
-          <p role="status" data-testid="trust-warning" className="mt-1 rounded bg-amber-500/15 px-2 py-1 text-amber-400">{trusted.warning}</p>
+          <p role="status" data-testid="trust-warning" className="mt-1 rounded bg-amber-500/15 px-2 py-1 text-warning">{trusted.warning}</p>
         ) : (
-          <p role="status" className="mt-1 text-emerald-400">All scan elements reviewed.</p>
+          <p role="status" className="mt-1 text-success">All scan elements reviewed.</p>
         )}
         <Legend />
       </div>
@@ -114,7 +114,7 @@ function Legend() {
     ['rejected', confidenceColor(1, 'rejected')],
   ];
   return (
-    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-text-muted">
+    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-text-muted">
       {entries.map(([label, color]) => (
         <span key={label} className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />{label}</span>
       ))}
@@ -129,7 +129,7 @@ function ReviewRow({ item, selected, onSelect, onVerify }: { item: ReviewItem; s
       <button className="min-w-0 flex-1 truncate text-left" onClick={onSelect} aria-label={`Select ${item.label}`}>
         {item.label}
       </button>
-      <span className="font-mono text-text-muted">{Math.round(item.confidence * 100)}%</span>
+      <span className="text-text-muted">{Math.round(item.confidence * 100)}%</span>
       <span data-testid={`status-${item.ref.id}`} className="w-16 text-right text-text-muted">{item.status}{item.provenance === 'user' ? ' · user' : ''}</span>
       <button
         className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
@@ -373,7 +373,7 @@ function NumberField({ label, value, onCommit, step = 0.05 }: { label: string; v
         type="number"
         step={step}
         aria-label={label}
-        className="w-20 rounded border border-border bg-background px-1.5 py-0.5 text-right font-mono"
+        className="w-20 rounded border border-border bg-background px-1.5 py-0.5 text-right"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}

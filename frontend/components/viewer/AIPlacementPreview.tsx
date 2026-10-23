@@ -40,14 +40,14 @@ export function AIPlacementPreview() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-accent text-white shadow-sm shadow-accent/30">
+            <div className="p-1.5 rounded-lg bg-accent text-white">
               <Sparkles size={14} />
             </div>
             <div>
               <h3 className="font-semibold text-xs leading-tight text-text-primary">
                 Smart Placement Proposal
               </h3>
-              <p className="text-[10px] text-text-muted font-mono">
+              <p className="text-[11px] text-text-muted">
                 {candidatePlacements.length} candidate(s) ready to commit
               </p>
             </div>
@@ -57,7 +57,7 @@ export function AIPlacementPreview() {
             <button
               onClick={acceptAllCandidatePlacements}
               title="Accept all proposed placements into the scene graph"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-[11px] font-semibold transition-all shadow-md shadow-accent/20"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-[11px] font-semibold transition"
             >
               <CheckCheck size={13} />
               <span>Accept All</span>
@@ -65,7 +65,7 @@ export function AIPlacementPreview() {
             <button
               onClick={clearCandidatePlacements}
               title="Dismiss all"
-              className="p-1.5 rounded-lg hover:bg-surface-elevated text-text-muted hover:text-red-400 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-surface-elevated text-text-muted hover:text-error transition-colors"
             >
               <X size={14} />
             </button>
@@ -73,7 +73,7 @@ export function AIPlacementPreview() {
         </div>
 
         {trustWarning && (
-          <p role="alert" className="rounded-lg bg-amber-500/15 px-2 py-1 text-[10px] text-amber-400">
+          <p role="alert" className="rounded-lg bg-amber-500/15 px-2 py-1 text-[11px] text-warning">
             {trustWarning} Review the scan before relying on these placements.
           </p>
         )}
@@ -99,7 +99,7 @@ export function AIPlacementPreview() {
                       <div className="font-medium text-[11px] truncate text-text-primary">
                         {candidate.name}
                       </div>
-                      <div className="text-[10px] text-text-muted font-mono truncate">
+                      <div className="text-[11px] text-text-muted truncate">
                         Pos: [{px.toFixed(2)}, {pz.toFixed(2)}]m • {candidate.reasoning}
                       </div>
                     </div>
@@ -109,14 +109,14 @@ export function AIPlacementPreview() {
                     <button
                       onClick={() => acceptCandidatePlacement(candidate.id)}
                       title="Keep this placement"
-                      className="p-1 rounded-md bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                      className="p-1 rounded-md bg-success-muted text-success hover:bg-success hover:text-white transition"
                     >
                       <Check size={12} />
                     </button>
                     <button
                       onClick={() => rejectCandidatePlacement(candidate.id)}
                       title="Reject this placement"
-                      className="p-1 rounded-md hover:bg-surface text-text-muted hover:text-red-400 transition-colors"
+                      className="p-1 rounded-md hover:bg-surface text-text-muted hover:text-error transition-colors"
                     >
                       <X size={12} />
                     </button>

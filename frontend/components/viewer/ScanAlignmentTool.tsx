@@ -198,7 +198,7 @@ export function ScanAlignmentTool({
             type="button"
             key={item}
             onClick={() => changeStage(item)}
-            className={`rounded-md px-2 py-1.5 text-[11px] font-medium capitalize transition-all ${
+            className={`rounded-md px-2 py-1.5 text-[11px] font-medium capitalize transition ${
               stage === item ? 'bg-accent text-white shadow-sm' : 'bg-surface-elevated text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -218,7 +218,7 @@ export function ScanAlignmentTool({
             <button
               type="button"
               onClick={() => applyFloor()}
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-success hover:bg-success/90 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <Check size={13} />
               Fit Floor Plane ({points.length} points)
@@ -246,7 +246,7 @@ export function ScanAlignmentTool({
             <button
               type="button"
               onClick={() => applyScale()}
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-success hover:bg-success/90 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <Check size={13} />
               Apply Scale ({distance} m)
@@ -264,14 +264,14 @@ export function ScanAlignmentTool({
             <button
               type="button"
               onClick={() => applyWallSquare()}
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-success hover:bg-success/90 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <Check size={13} />
               Square Up Wall
             </button>
           )}
           <div className="pt-2 border-t border-border/60">
-            <span className="text-[10px] uppercase font-semibold text-text-muted tracking-wider">Quick Step Rotation</span>
+            <span className="text-[11px] font-semibold text-text-muted">Quick Step Rotation</span>
             <div className="mt-1.5 flex gap-2">
               <button
                 type="button"
@@ -308,9 +308,9 @@ export function ScanAlignmentTool({
         )}
       </div>
 
-      {error && <p role="alert" className="mt-2 text-xs text-red-400 font-medium">{error}</p>}
-      {!error && lastAction && <p className="mt-2 text-xs text-emerald-400 font-medium">{lastAction}</p>}
-      {!scanId && <p className="mt-2 text-xs text-amber-300 font-medium">Load a scan before aligning.</p>}
+      {error && <p role="alert" className="mt-2 text-xs text-error font-medium">{error}</p>}
+      {!error && lastAction && <p className="mt-2 text-xs text-success font-medium">{lastAction}</p>}
+      {!scanId && <p className="mt-2 text-xs text-warning font-medium">Load a scan before aligning.</p>}
 
       <button
         type="button"
@@ -320,7 +320,7 @@ export function ScanAlignmentTool({
           setIsPicking(next);
           onPickModeChange(next);
         }}
-        className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-semibold text-white transition-all disabled:opacity-40 ${
+        className={`mt-3 w-full rounded-md px-3 py-2 text-xs font-semibold text-text-primary transition disabled:opacity-40 ${
           isPicking ? 'bg-amber-600 hover:bg-amber-500' : 'bg-accent hover:bg-accent/90'
         }`}
       >

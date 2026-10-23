@@ -30,9 +30,9 @@ const STAGE_LABELS: Record<ConversionStage['name'], string> = {
 };
 
 function StageIcon({ status }: { status: ConversionStage['status'] }) {
-  if (status === 'completed') return <CheckCircle2 size={14} className="text-emerald-400" />;
+  if (status === 'completed') return <CheckCircle2 size={14} className="text-success" />;
   if (status === 'running') return <Loader2 size={14} className="animate-spin text-accent" />;
-  if (status === 'failed') return <XCircle size={14} className="text-red-400" />;
+  if (status === 'failed') return <XCircle size={14} className="text-error" />;
   return <Circle size={14} className="text-text-muted" />;
 }
 
@@ -93,7 +93,7 @@ export function ScanToEditableModal({ isOpen, onClose, projectId, onImported }: 
 
   const stages = progress?.job?.stages;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
       <div role="dialog" aria-label="Import scan" className="flex w-full max-w-lg flex-col gap-4 rounded-2xl border border-border bg-surface p-6 text-text-primary shadow-2xl">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
@@ -102,7 +102,7 @@ export function ScanToEditableModal({ isOpen, onClose, projectId, onImported }: 
             </div>
             <div>
               <h3 className="text-sm font-semibold">Convert Scan to Editable Space</h3>
-              <p className="text-xs text-text-muted">Upload a Gaussian splat; walls, floor and openings become editable Pascal nodes; with the GPU worker on, furniture becomes movable items.</p>
+              <p className="text-xs text-text-muted">Upload a Gaussian splat; walls, floor and openings become editable objects; with the GPU worker on, furniture becomes movable items.</p>
             </div>
           </div>
           <button onClick={close} aria-label="Close" className="rounded-lg p-1 text-text-muted hover:bg-surface-elevated hover:text-text-primary">
@@ -126,7 +126,7 @@ export function ScanToEditableModal({ isOpen, onClose, projectId, onImported }: 
 
         {progress && (
           <div className="space-y-2 rounded-xl border border-border/60 bg-surface-elevated/40 p-3 text-xs" aria-live="polite">
-            <p data-testid="import-message" className={progress.phase === 'failed' ? 'text-red-400' : 'text-text-secondary'} role={progress.phase === 'failed' ? 'alert' : undefined}>
+            <p data-testid="import-message" className={progress.phase === 'failed' ? 'text-error' : 'text-text-secondary'} role={progress.phase === 'failed' ? 'alert' : undefined}>
               {progress.message}
             </p>
             {stages && (
@@ -161,7 +161,7 @@ export function ScanToEditableModal({ isOpen, onClose, projectId, onImported }: 
           <button
             onClick={() => void run()}
             disabled={!file || busy}
-            className="flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2 text-xs font-medium text-white shadow-lg shadow-accent/25 hover:bg-accent-light disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2 text-xs font-medium text-white hover:bg-accent-light disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             <span>{busy ? 'Converting…' : 'Upload & convert'}</span>

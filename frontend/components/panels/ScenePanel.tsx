@@ -231,8 +231,8 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           </div>
           <div>
             <h2 className="font-semibold text-xs leading-tight">Scene Hierarchy</h2>
-            <p className="text-[10px] text-text-muted leading-tight font-mono">
-              {totalCount} Pascal nodes registered
+            <p className="text-[11px] text-text-muted leading-tight">
+              {totalCount} items
             </p>
           </div>
         </div>
@@ -248,7 +248,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           </button>
           <input ref={uploadRef} type="file" accept=".glb,model/gltf-binary" className="hidden" aria-label="Upload GLB" onChange={(event) => { void uploadGlb(event.target.files?.[0]); event.target.value = ''; }} />
         </div>
-        {assetError && <p role="alert" className="text-[10px] text-red-400">{assetError}</p>}
+        {assetError && <p role="alert" className="text-[11px] text-error">{assetError}</p>}
         {catalogOpen && <div className="max-h-32 overflow-y-auto rounded border border-border">
           {catalog.map((item) => <button key={item.id} onClick={() => commitAsset({ id: item.id, name: item.name, category: item.category, src: api.normalizeModelUrl(item.url) || item.url, dimensions: [item.dimensions.width_m, item.dimensions.height_m, item.dimensions.depth_m || item.dimensions.width_m] })} className="block w-full px-2 py-1.5 text-left text-[11px] hover:bg-surface-elevated">{item.name} · {item.dimensions.width_m} × {item.dimensions.height_m} × {item.dimensions.depth_m || item.dimensions.width_m} m</button>)}
         </div>}
@@ -261,7 +261,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           <div className="pt-1.5 first:pt-0">
             <button
               onClick={() => toggleSection('items')}
-              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted uppercase tracking-wider hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
+              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
             >
               <ChevronRight
                 size={12}
@@ -269,7 +269,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   expandedSections.has('items') ? 'rotate-90' : ''
                 }`}
               />
-              <BoxSelect size={13} className="text-amber-400" />
+              <BoxSelect size={13} className="text-warning" />
               <span>Furniture ({items.length})</span>
             </button>
 
@@ -285,14 +285,14 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={item.id}
                       onClick={() => handleSelectNode(item.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === item.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <span className="truncate">{item.name || item.id}</span>
-                      <span className="text-[9px] font-mono text-text-muted uppercase px-1 rounded bg-surface-elevated">
+                      <span className="text-[11px] text-text-muted px-1 rounded bg-surface-elevated">
                         {item.category || 'prop'}
                       </span>
                     </button>
@@ -308,7 +308,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           <div className="pt-1.5">
             <button
               onClick={() => toggleSection('walls')}
-              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted uppercase tracking-wider hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
+              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
             >
               <ChevronRight
                 size={12}
@@ -316,7 +316,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   expandedSections.has('walls') ? 'rotate-90' : ''
                 }`}
               />
-              <Box size={13} className="text-blue-400" />
+              <Box size={13} className="text-accent" />
               <span>Walls ({walls.length})</span>
             </button>
 
@@ -332,14 +332,14 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={wall.id}
                       onClick={() => handleSelectNode(wall.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === wall.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <span className="truncate">{wall.name || wall.id}</span>
-                      <span className="text-[9px] font-mono text-text-muted">
+                      <span className="text-[11px] text-text-muted">
                         h: {wall.height || 3}m
                       </span>
                     </button>
@@ -355,7 +355,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           <div className="pt-1.5">
             <button
               onClick={() => toggleSection('scans')}
-              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted uppercase tracking-wider hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
+              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
             >
               <ChevronRight
                 size={12}
@@ -363,7 +363,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   expandedSections.has('scans') ? 'rotate-90' : ''
                 }`}
               />
-              <Eye size={13} className="text-emerald-400" />
+              <Eye size={13} className="text-success" />
               <span>Scans ({scans.length})</span>
             </button>
 
@@ -379,7 +379,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <div
                       key={scan.id}
                       onClick={() => handleSelectNode(scan.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition ${
                         activeId === scan.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
@@ -409,7 +409,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
           <div className="pt-1.5">
             <button
               onClick={() => toggleSection('zones')}
-              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted uppercase tracking-wider hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
+              className="w-full flex items-center gap-2 px-2 py-1 font-semibold text-[11px] text-text-muted hover:text-text-secondary rounded-md hover:bg-surface-elevated/40"
             >
               <ChevronRight
                 size={12}
@@ -417,7 +417,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   expandedSections.has('zones') ? 'rotate-90' : ''
                 }`}
               />
-              <Shapes size={13} className="text-purple-400" />
+              <Shapes size={13} className="text-accent" />
               <span>Floors & Zones ({zones.length + slabs.length})</span>
             </button>
 
@@ -433,28 +433,28 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <button
                       key={slab.id}
                       onClick={() => handleSelectNode(slab.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === slab.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <span className="truncate">{slab.name || slab.id}</span>
-                      <span className="text-[9px] font-mono text-text-muted">slab</span>
+                      <span className="text-[11px] text-text-muted">slab</span>
                     </button>
                   ))}
                   {zones.map((zone) => (
                     <button
                       key={zone.id}
                       onClick={() => handleSelectNode(zone.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition ${
                         activeId === zone.id
                           ? 'bg-accent/20 text-accent-light border border-accent/30 font-medium'
                           : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <span className="truncate">{zone.name || zone.id}</span>
-                      <span className="text-[9px] font-mono text-purple-300">
+                      <span className="text-[11px] text-accent">
                         {zone.category || 'zone'}
                       </span>
                     </button>
@@ -477,7 +477,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
             <button
               title="Delete node"
               onClick={handleDeleteNode}
-              className="text-text-muted hover:text-red-400 p-1 rounded hover:bg-surface-elevated transition-colors"
+              className="text-text-muted hover:text-error p-1 rounded hover:bg-surface-elevated transition-colors"
             >
               <Trash2 size={13} />
             </button>
@@ -488,7 +488,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
             <div className="space-y-2">
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <label className="text-[10px] text-text-muted block">Pos X (m)</label>
+                  <label className="text-[11px] text-text-muted block">Pos X (m)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -496,11 +496,11 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     value={positionDraft[0]}
                     onChange={(e) => setPositionDraft([e.target.value, positionDraft[1], positionDraft[2]])}
                     onBlur={() => handleUpdateNodeProp('position', [parseFloat(positionDraft[0]) || 0, selectedNode.position?.[1] ?? 0, selectedNode.position?.[2] ?? 0])}
-                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs font-mono"
+                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-text-muted block">Pos Y (m)</label>
+                  <label className="text-[11px] text-text-muted block">Pos Y (m)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -508,11 +508,11 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     value={positionDraft[1]}
                     onChange={(e) => setPositionDraft([positionDraft[0], e.target.value, positionDraft[2]])}
                     onBlur={() => handleUpdateNodeProp('position', [selectedNode.position?.[0] ?? 0, Math.max(0, parseFloat(positionDraft[1]) || 0), selectedNode.position?.[2] ?? 0])}
-                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs font-mono"
+                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-text-muted block">Pos Z (m)</label>
+                  <label className="text-[11px] text-text-muted block">Pos Z (m)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -520,13 +520,13 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     value={positionDraft[2]}
                     onChange={(e) => setPositionDraft([positionDraft[0], positionDraft[1], e.target.value])}
                     onBlur={() => handleUpdateNodeProp('position', [selectedNode.position?.[0] ?? 0, selectedNode.position?.[1] ?? 0, parseFloat(positionDraft[2]) || 0])}
-                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs font-mono"
+                    className="w-full bg-surface border border-border rounded px-1.5 py-1 text-xs"
                   />
                 </div>
               </div>
 
               {(selectedNode.asset?.dimensions || selectedNode.dimensions) && (
-                <div className="flex items-center gap-2 text-[10px] text-text-muted font-mono bg-surface p-1.5 rounded border border-border/50">
+                <div className="flex items-center gap-2 text-[11px] text-text-muted bg-surface p-1.5 rounded border border-border/50">
                   <Maximize2 size={11} className="text-text-secondary" />
                   {selectedNode.asset?.dimensions ? (
                     // Catalog/asset dimensions are product specs, not scan measurements.
@@ -546,7 +546,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     <span className="text-[11px] font-semibold text-accent-light flex items-center gap-1.5">
                       <BoxSelect size={12} /> Splat Mask
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${linkedMask.ghost ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded ${linkedMask.ghost ? 'bg-warning-muted text-warning' : 'bg-success-muted text-success'}`}>
                       {linkedMask.ghost ? 'Ghost (25%)' : 'Masked (0%)'}
                     </span>
                   </div>
@@ -558,7 +558,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                     onClick={() => toggleMaskGhostMode(scanNode.id, linkedMask.id)}
                     className={`w-full py-1.5 px-2 rounded text-[11px] font-medium border transition-colors flex items-center justify-center gap-1.5 ${
                       linkedMask.ghost
-                        ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                        ? 'bg-amber-500/15 border-warning text-warning hover:bg-amber-500/25'
                         : 'bg-surface-elevated border-border text-text-secondary hover:text-text-primary hover:border-accent'
                     }`}
                   >
@@ -568,10 +568,10 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
 
                   {/* Mask Resize Controls */}
                   <div className="space-y-1">
-                    <label className="text-[10px] text-text-muted block">Mask Size (m)</label>
+                    <label className="text-[11px] text-text-muted block">Mask Size (m)</label>
                     <div className="grid grid-cols-3 gap-1">
                       <div>
-                        <span className="text-[9px] text-text-muted block">W</span>
+                        <span className="text-[11px] text-text-muted block">W</span>
                         <input
                           type="number"
                           step="0.05"
@@ -581,11 +581,11 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                             const val = parseFloat(e.target.value) || 0.1;
                             resizeMaskRegion(scanNode.id, linkedMask.id, [val, linkedMask.obb.size[1], linkedMask.obb.size[2]]);
                           }}
-                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px] font-mono"
+                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px]"
                         />
                       </div>
                       <div>
-                        <span className="text-[9px] text-text-muted block">H</span>
+                        <span className="text-[11px] text-text-muted block">H</span>
                         <input
                           type="number"
                           step="0.05"
@@ -595,11 +595,11 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                             const val = parseFloat(e.target.value) || 0.1;
                             resizeMaskRegion(scanNode.id, linkedMask.id, [linkedMask.obb.size[0], val, linkedMask.obb.size[2]]);
                           }}
-                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px] font-mono"
+                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px]"
                         />
                       </div>
                       <div>
-                        <span className="text-[9px] text-text-muted block">D</span>
+                        <span className="text-[11px] text-text-muted block">D</span>
                         <input
                           type="number"
                           step="0.05"
@@ -609,14 +609,14 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                             const val = parseFloat(e.target.value) || 0.1;
                             resizeMaskRegion(scanNode.id, linkedMask.id, [linkedMask.obb.size[0], linkedMask.obb.size[1], val]);
                           }}
-                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px] font-mono"
+                          className="w-full bg-surface border border-border rounded px-1 py-0.5 text-[11px]"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Mask Feather Falloff Control */}
-                  <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <div className="flex items-center justify-between text-[11px] text-text-muted">
                     <span>Feather Falloff:</span>
                     <input
                       type="range"
@@ -630,7 +630,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                       }}
                       className="w-20 h-1.5 bg-surface rounded accent-accent"
                     />
-                    <span className="font-mono text-text-primary text-[10px]">{(linkedMask.feather ?? 0.05).toFixed(2)}m</span>
+                    <span className="text-text-primary text-[11px]">{(linkedMask.feather ?? 0.05).toFixed(2)}m</span>
                   </div>
                 </div>
               )}
@@ -641,11 +641,11 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-text-muted text-[11px]">
                 <span>Thickness:</span>
-                <span className="font-mono text-text-primary">{selectedNode.thickness || 0.2}m</span>
+                <span className="text-text-primary">{selectedNode.thickness || 0.2}m</span>
               </div>
               <div className="flex justify-between items-center text-text-muted text-[11px]">
                 <span>Height:</span>
-                <span className="font-mono text-text-primary">{selectedNode.height || 3.0}m</span>
+                <span className="text-text-primary">{selectedNode.height || 3.0}m</span>
               </div>
             </div>
           )}
@@ -665,7 +665,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
               </div>
               <div className="flex justify-between items-center text-text-muted text-[11px]">
                 <span>Exclusion Boxes:</span>
-                <span className="font-mono text-text-primary">
+                <span className="text-text-primary">
                   {selectedNode.metadata?.exclusionBoxes?.length || 0}
                 </span>
               </div>
@@ -678,29 +678,29 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
                   </span>
                 </div>
                 {((selectedNode.metadata?.maskRegions || []) as MaskRegion[]).map((mask) => (
-                  <div key={mask.id} className="p-2 rounded-lg bg-surface border border-border/60 text-[10px] space-y-1.5">
+                  <div key={mask.id} className="p-2 rounded-lg bg-surface border border-border/60 text-[11px] space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-text-primary truncate">{mask.id}</span>
                       <button
                         type="button"
                         aria-label={`Toggle Ghost ${mask.id}`}
                         onClick={() => toggleMaskGhostMode(selectedNode.id, mask.id)}
-                        className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                        className={`px-1.5 py-0.5 rounded text-[11px] border transition-colors ${
                           mask.ghost
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            ? 'bg-warning-muted text-warning border-warning'
                             : 'bg-surface-elevated text-text-muted border-border hover:text-text-primary'
                         }`}
                       >
                         {mask.ghost ? 'Ghost (25%)' : 'Masked (0%)'}
                       </button>
                     </div>
-                    <div className="text-[9px] text-text-muted font-mono flex items-center justify-between">
+                    <div className="text-[11px] text-text-muted flex items-center justify-between">
                       <span title={estimateTitle}>Size: {formatDimensions(mask.obb.size, scaleSource)}</span>
                       <button
                         type="button"
                         title="Delete mask"
                         onClick={() => removeMaskRegion(selectedNode.id, mask.id)}
-                        className="text-text-muted hover:text-red-400 p-0.5 rounded"
+                        className="text-text-muted hover:text-error p-0.5 rounded"
                       >
                         <Trash2 size={11} />
                       </button>

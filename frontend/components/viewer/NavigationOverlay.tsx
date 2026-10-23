@@ -63,7 +63,7 @@ export function NavigationOverlay({ editable = false }: NavigationOverlayProps) 
       <div className="pointer-events-auto absolute bottom-4 right-4 z-40 flex flex-col items-end gap-2" data-testid="navigation-overlay">
         {navMode === 'walk' && (
         <div className="pointer-events-none max-w-xs space-y-1 text-right" data-testid="walk-hint">
-          <p className="rounded-md bg-black/70 px-3 py-1.5 text-xs text-white">
+          <p className="rounded-md bg-surface-elevated px-3 py-1.5 text-xs text-text-primary">
             Click to look around · WASD / arrows move · Shift sprint · Space jump · C crouch · 1/2/3 Splat/Mesh/Both · Esc exit
           </p>
           {noWallCollision && (

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ellips editor, direction mock</title>
+<style>
+/* Tokens from docs/design/ui-redesign-plan.md (light only). Regular glass fill is 88%, not the plan's 85%: see DESIGN.md. */
+:root {
+  --vellum: #F5F7FA;
+  --paper: #FFFFFF;
+  --ink: #0B1F3A;
+  --navy: #1B3A6B;
+  --slate: #4D6080;
+  --muted: #5E6F8A;      /* opaque surfaces only, never on glass */
+  --hairline: #DDE3EC;
+  --error: #B42318;
+
+  --r-control: 8px;
+  --r-panel: 14px;
+  --r-sheet: 18px;
+
+  --glass-fill: rgba(255, 255, 255, .88);
+  --glass-blur: blur(24px) saturate(1.4);
+  --glass-edge: rgba(221, 227, 236, .9);
+  --glass-shadow: 0 8px 32px rgba(11, 31, 58, .12);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, .6);
+  --clear-fill: rgba(255, 255, 255, .30);
+  --clear-dim: rgba(0, 0, 0, .35);
+
+  --sel: rgba(27, 58, 107, .10);
+  --hover: rgba(11, 31, 58, .05);
+  --pl: 296px;           /* left panel width */
+  --pr: 332px;           /* right panel width */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", system-ui, sans-serif;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+@media (max-width: 1279.98px) { :root { --pl: 244px; --pr: 276px; } }
+
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body {
+  font: 400 13px/1.4 var(--font);
+  color: var(--ink);
+  background: var(--vellum);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Scan layer (content layer: no glass) ---------- */
+.stage { position: fixed; inset: 0; overflow: hidden; background: var(--vellum); }
+/* The scene box keeps the photo's aspect ratio and covers the stage; overlays are placed in % of it. */
+.scene {
+  --h: max(100vh, calc(100vw / 1.9335));
+  position: absolute; left: 50%; top: 0;
+  height: var(--h); width: calc(var(--h) * 1.9335);
+  transform: translateX(-50%);
+  background: url("viewport.png") center / 100% 100% no-repeat;
+}
+@media (max-width: 1023.98px) {
+  .scene { top: 52px; --h: calc(58vh); }
+}
+
+/* Selection around the chair: navy outline, white square handles */
+.sel { position: absolute; left: 31.1%; width: 38.3%; top: 14.65%; bottom: 0; border: 1.5px solid var(--navy); border-radius: 6px; border-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; pointer-events: none; }
+.sel i { position: absolute; width: 9px; height: 9px; background: #fff; border: 1.5px solid var(--navy); border-radius: 2px; }
+.sel i:nth-child(1) { left: -5px; top: -5px; } .sel i:nth-child(2) { right: -5px; top: -5px; }
+.sel i:nth-child(3) { left: -5px; top: 50%; } .sel i:nth-child(4) { right: -5px; top: 50%; }
+
+/* Measurement signature: a drafted dimension line */
+.dim { position: absolute; left: 31.1%; width: 38.3%; top: 9.6%; height: 12px; color: var(--ink); filter: drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.8)); pointer-events: none; }
+.dim::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: currentColor; }
+.dim .tick { position: absolute; top: 0; width: 1px; height: 12px; background: currentColor; }
+.dim .tick.l { left: 0; } .dim .tick.r { right: 0; }
+.dim .ext { position: absolute; top: 12px; width: 1px; height: calc(var(--ext, 36px)); background: currentColor; opacity: .45; }
+.dim .ext.l { left: 0; } .dim .ext.r { right: 0; }
+.dim .tag { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 9px; background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; filter: none; }
+.dim .tag small { font-size: 11px; font-weight: 500; color: var(--slate); }
+
+/* ---------- Glass (functional layer only) ---------- */
+.glass, .panel {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+.glass { border-radius: var(--r-panel); }
+
+/* Toolbar */
+.toolbar { position: fixed; z-index: 5; left: 12px; right: 12px; top: 12px; height: 48px; padding: 0 8px 0 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.toolbar .l, .toolbar .r { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.toolbar .r { justify-content: flex-end; }
+.brand { font-weight: 600; font-size: 15px; letter-spacing: -.01em; display: inline-flex; align-items: center; gap: 8px; }
+.brand svg { width: 18px; height: 18px; color: var(--navy); }
+.sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 4px; }
+.project { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px; border-radius: var(--r-control); font-weight: 600; min-width: 0; }
+.project span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project:hover, .iconbtn:hover, .row:hover { background: var(--hover); }
+.saved { color: var(--slate); font-size: 11px; white-space: nowrap; }
+.iconbtn { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: var(--r-control); color: var(--slate); transition: background .15s var(--ease); }
+.iconbtn:hover { color: var(--ink); }
+.center { display: flex; gap: 8px; }
+
+/* Segmented control: active segment is a neutral raised chip, not navy */
+.seg { display: inline-flex; padding: 2px; gap: 2px; background: rgba(11, 31, 58, .06); border-radius: var(--r-control); }
+.seg button { height: 28px; padding: 0 12px; border-radius: 6px; color: var(--slate); font-weight: 500; transition: background .15s var(--ease), color .15s var(--ease); }
+.seg button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--hairline), 0 1px 2px rgba(11,31,58,.08); }
+
+.btn { height: 32px; padding: 0 14px; border-radius: var(--r-control); font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s var(--ease); }
+.btn.primary { background: var(--navy); color: #fff; }
+.btn.primary:hover { background: #162F58; }
+.btn.quiet { color: var(--slate); font-weight: 500; }
+.btn.quiet:hover { background: var(--hover); color: var(--ink); }
+
+/* Panels */
+.panel { position: fixed; z-index: 4; top: 72px; max-height: calc(100% - 84px); border-radius: var(--r-panel); display: flex; flex-direction: column; overflow: hidden; }
+.scene-panel { left: 12px; width: var(--pl); }
+.ask-panel { right: 12px; width: var(--pr); }
+.ph { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 8px 16px; }
+.ph h2 { font-size: 15px; font-weight: 600; letter-spacing: -.005em; }
+.pb { overflow: auto; padding: 0 8px 12px; }
+.sec { display: flex; justify-content: space-between; padding: 12px 8px 4px; color: var(--slate); font-size: 11px; font-weight: 600; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 32px; padding: 0 8px; border-radius: var(--r-control); text-align: left; transition: background .15s var(--ease); }
+.row[aria-selected="true"] { background: var(--sel); font-weight: 600; }
+.row .m { color: var(--slate); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.row .m b { font-weight: 500; font-size: 11px; margin-left: 3px; }
+.rows { display: grid; gap: 1px; }
+.rows .row + .row { }
+.eye { color: var(--slate); width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; }
+
+/* Ask panel */
+.ctx { margin: 0 16px 8px; display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border: 1px solid var(--hairline); border-radius: 11px; color: var(--slate); font-size: 11px; }
+.msgs { display: grid; gap: 10px; padding: 4px 16px 12px; overflow: auto; }
+.me { justify-self: end; max-width: 88%; background: rgba(11, 31, 58, .06); padding: 7px 11px; border-radius: 12px 12px 4px 12px; }
+.bot { color: var(--ink); }
+.prop { border: 1px solid var(--hairline); border-radius: var(--r-control); padding: 12px; background: rgba(255,255,255,.7); }
+.prop h3 { font-size: 13px; font-weight: 600; }
+.prop p { color: var(--slate); margin-top: 4px; }
+.prop .acts { display: flex; gap: 8px; margin-top: 12px; }
+.note { color: var(--slate); font-size: 11px; margin-top: 8px; }
+.num-inline { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+.num-inline small { font-weight: 500; font-size: 11px; color: var(--slate); }
+.variants { padding: 4px 16px 12px; }
+.variants .vh { display: flex; justify-content: space-between; color: var(--slate); font-size: 11px; font-weight: 600; margin-bottom: 8px; }
+.vrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.v { display: grid; gap: 4px; text-align: left; font-size: 11px; color: var(--slate); }
+.v .t { aspect-ratio: 4 / 3; border-radius: 6px; background: url("viewport.png") center / cover; border: 1px solid var(--hairline); }
+.v[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
+.v[aria-pressed="true"] .t { box-shadow: 0 0 0 2px var(--navy); border-color: transparent; }
+.v .t.alt { background-position: 20% 60%; background-size: 220%; }
+.v .t.new { background: transparent; border: 1px dashed #8A98AE; display: grid; place-items: center; color: var(--slate); }
+.composer { display: flex; align-items: center; gap: 8px; margin: 0 12px 12px; padding: 4px 4px 4px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: rgba(255,255,255,.8); }
+.composer span { flex: 1; color: var(--slate); }
+.composer .send { width: 28px; height: 28px; border-radius: 7px; background: rgba(11,31,58,.08); display: grid; place-items: center; color: var(--ink); }
+
+/* Object action bar (glass: floats over the scan) */
+.objbar { position: absolute; z-index: 3; left: 50%; top: 19.5%; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; height: 40px; border-radius: 12px; }
+.objbar .name { padding: 0 10px 0 8px; font-weight: 600; white-space: nowrap; }
+.objbar .iconbtn { width: auto; padding: 0 8px; gap: 6px; display: inline-flex; font-weight: 500; }
+
+/* Tool palette */
+.palette { position: fixed; z-index: 5; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 2px; padding: 5px; border-radius: 16px; }
+.tool { display: grid; justify-items: center; gap: 3px; width: 64px; padding: 7px 0 5px; border-radius: 11px; color: var(--slate); font-size: 11px; position: relative; transition: background .15s var(--ease); }
+.tool svg { width: 20px; height: 20px; }
+.tool:hover { background: var(--hover); color: var(--ink); }
+.tool[aria-pressed="true"] { background: rgba(11, 31, 58, .07); color: var(--ink); font-weight: 600; }
+.tool[aria-pressed="true"]::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 2px; height: 2px; border-radius: 1px; background: var(--navy); }
+
+/* Sheet bits are hidden at desktop widths */
+.grab, .tabs, .more { display: none; }
+.sheet { display: contents; }
+
+/* ---------- Compact (<1024px): panels become one bottom sheet ---------- */
+@media (max-width: 1023.98px) {
+  .toolbar { left: 8px; right: 8px; top: 8px; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; padding: 0 6px 0 4px; }
+  .toolbar .brand, .toolbar .sep, .toolbar .undo, .toolbar .saved, .toolbar .center .seg:nth-child(2) { display: none; }
+  .more { display: inline-grid; }
+  .sheet { display: flex; flex-direction: column; position: fixed; z-index: 6; left: 8px; right: 8px; bottom: 8px; height: 42vh; border-radius: var(--r-sheet); overflow: hidden;
+    background: var(--glass-fill); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow), var(--glass-highlight); }
+  .grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: #9AA7BC; margin: 8px auto 4px; flex: none; }
+  .tabs { display: flex; justify-content: center; padding: 4px 12px 6px; flex: none; }
+  .panel { position: static; width: auto; max-height: none; flex: 1; border: 0; box-shadow: none; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; min-height: 0; }
+  .ph { display: none; }
+  .sheet:has(#tab-ask:checked) .scene-panel, .sheet:has(#tab-scene:checked) .ask-panel { display: none; }
+  .palette { bottom: calc(42vh + 18px); padding: 4px; border-radius: 14px; }
+  .tool { width: 48px; padding: 8px 0; } .tool span { display: none; } .tool[aria-pressed="true"]::after { left: 14px; right: 14px; }
+  .objbar, .me, .bot { display: none; }
+  .ask-panel { overflow: auto; }
+  .dim .tag small { display: none; }
+  .dim { --ext: 24px !important; }
+  .composer { display: none; }
+}
+
+/* ---------- Accessibility fallbacks ---------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .panel, .sheet { background: var(--paper); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .panel, .sheet { background: var(--paper); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  :root { --glass-edge: #0B1F3A; --hairline: #6B7C96; --sel: rgba(27, 58, 107, .18); }
+  .glass, .panel, .sheet { background: var(--paper); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; border: 1px solid var(--ink); }
+  .btn.quiet, .saved, .sec, .row .m, .note { color: var(--ink); }
+  .seg { background: transparent; box-shadow: inset 0 0 0 1px var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></symbol>
+    <symbol id="i-wall" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 9v6"/><path d="M16 15v6"/><path d="M16 3v6"/><path d="M3 15h18"/><path d="M3 9h18"/><path d="M8 15v6"/><path d="M8 3v6"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/></symbol>
+    <symbol id="i-window" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M12 3v18"/><path d="M4 12h16"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="m15 19-3 3-3-3"/><path d="m19 9 3 3-3 3"/><path d="M2 12h20"/><path d="m5 9-3 3 3 3"/><path d="m9 5 3-3 3 3"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-mark" viewBox="0 0 24 24"><path d="M4 20V8l8-4 8 4v12"/><path d="M4 20h16"/><path d="M9 20v-6h6v6"/></symbol>
+  </defs>
+</svg>
+
+<main class="stage" aria-label="Living room, 3D scan">
+  <div class="scene">
+    <div class="sel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="dim" role="img" aria-label="Width, about 0.92 metres, plus or minus 3 centimetres" style="--ext: 36px">
+      <span class="ext l"></span><span class="ext r"></span>
+      <span class="tick l"></span><span class="tick r"></span>
+      <span class="tag"><span>≈ 0.92 m</span><small>±3 cm</small></span>
+    </div>
+    <div class="objbar glass" role="toolbar" aria-label="Dining chair actions">
+      <span class="name">Dining chair</span>
+      <button class="iconbtn" title="Move"><svg class="i"><use href="#i-move"/></svg><span>Move</span></button>
+      <button class="iconbtn" title="Replace"><svg class="i"><use href="#i-swap"/></svg><span>Replace</span></button>
+      <button class="iconbtn" title="Duplicate" aria-label="Duplicate"><svg class="i"><use href="#i-copy"/></svg></button>
+      <button class="iconbtn" title="Delete" aria-label="Delete"><svg class="i"><use href="#i-trash"/></svg></button>
+    </div>
+  </div>
+</main>
+
+<header class="toolbar glass" role="toolbar" aria-label="Editor">
+  <div class="l">
+    <span class="brand"><svg class="i" style="width:18px;height:18px"><use href="#i-mark"/></svg><span>Ellips</span></span>
+    <span class="sep"></span>
+    <button class="project" aria-label="Project: Living room"><span>Living room</span><svg class="i" style="width:14px;height:14px"><use href="#i-chev"/></svg></button>
+    <span class="saved">Saved</span>
+  </div>
+  <div class="center">
+    <div class="seg" role="group" aria-label="Camera"><button aria-pressed="true">Orbit</button><button aria-pressed="false">Walk</button></div>
+    <div class="seg" role="group" aria-label="Show"><button aria-pressed="false">Splat</button><button aria-pressed="false">Mesh</button><button aria-pressed="true">Both</button></div>
+  </div>
+  <div class="r">
+    <button class="iconbtn undo" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+    <button class="iconbtn undo" aria-label="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
+    <button class="iconbtn more" aria-label="More"><svg class="i"><use href="#i-more"/></svg></button>
+    <button class="btn primary">Share</button>
+  </div>
+</header>
+
+<div class="sheet">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="tabs">
+    <div class="seg" role="radiogroup" aria-label="Panel">
+      <label><input type="radio" name="tab" id="tab-ask" checked hidden><button type="button" onclick="document.getElementById('tab-ask').checked=true;this.closest('.seg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===this))" aria-pressed="true">Ask</button></label>
+      <label><input type="radio" name="tab" id="tab-scene" hidden><button type="button" onclick="document.getElementById('tab-scene').checked=true;this.closest('.seg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===this))" aria-pressed="false">Scene</button></label>
+    </div>
+  </div>
+
+  <aside class="panel scene-panel" aria-label="Scene">
+    <div class="ph"><h2>Scene</h2><button class="iconbtn" aria-label="Collapse panel"><svg class="i"><use href="#i-panel"/></svg></button></div>
+    <div class="pb">
+      <div class="sec"><span>Objects</span><span class="num">4</span></div>
+      <div class="rows" role="listbox" aria-label="Objects">
+        <button class="row" role="option" aria-selected="false"><span>Bouclé sofa</span><span class="m">≈ 2.04 m<b>±3 cm</b></span></button>
+        <button class="row" role="option" aria-selected="false"><span>Walnut coffee table</span><span class="m">≈ 1.10 m<b>±3 cm</b></span></button>
+        <button class="row" role="option" aria-selected="false"><span>Oak dining table</span><span class="m">≈ 1.80 m<b>±3 cm</b></span></button>
+        <button class="row" role="option" aria-selected="true"><span>Dining chair</span><span class="m">≈ 0.92 m<b>±3 cm</b></span></button>
+      </div>
+      <div class="sec"><span>Walls</span><span class="num">4</span></div>
+      <div class="rows">
+        <button class="row"><span>North wall</span><span class="m">≈ 4.12 m<b>±3 cm</b></span></button>
+        <button class="row"><span>East wall</span><span class="m">≈ 3.55 m<b>±3 cm</b></span></button>
+        <button class="row"><span>South wall</span><span class="m">≈ 4.11 m<b>±3 cm</b></span></button>
+        <button class="row"><span>West wall</span><span class="m">≈ 3.56 m<b>±3 cm</b></span></button>
+      </div>
+      <div class="sec"><span>Layers</span></div>
+      <div class="rows">
+        <div class="row"><span>Scan</span><button class="eye" aria-label="Hide scan" aria-pressed="true"><svg class="i"><use href="#i-eye"/></svg></button></div>
+        <div class="row"><span>Walls and openings</span><button class="eye" aria-label="Hide walls and openings" aria-pressed="true"><svg class="i"><use href="#i-eye"/></svg></button></div>
+        <div class="row"><span>Objects</span><button class="eye" aria-label="Hide objects" aria-pressed="true"><svg class="i"><use href="#i-eye"/></svg></button></div>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="panel ask-panel" aria-label="Ask">
+    <div class="ph"><h2>Ask</h2><span class="ctx" style="margin:0 4px 0 0">Dining chair selected</span></div>
+    <div class="msgs">
+      <div class="me">Move this chair closer to the dining table</div>
+      <div class="bot">Here is the change. Nothing moves until you apply it.</div>
+      <div class="prop">
+        <h3>Move dining chair 0.4 m toward the table</h3>
+        <p>Gap to the table goes from <span class="num-inline">≈ 0.62 m <small>±3 cm</small></span> to <span class="num-inline">≈ 0.22 m <small>±3 cm</small></span>.</p>
+        <div class="acts"><button class="btn primary">Apply</button><button class="btn quiet">Dismiss</button></div>
+        <p class="note">A preview appears in the scan before you apply.</p>
+      </div>
+    </div>
+    <div class="variants">
+      <div class="vh"><span>Variants</span><span class="num">2</span></div>
+      <div class="vrow">
+        <button class="v" aria-pressed="true"><span class="t"></span>As scanned</button>
+        <button class="v" aria-pressed="false"><span class="t alt"></span>Chair moved</button>
+        <button class="v" aria-pressed="false"><span class="t new"><svg class="i"><use href="#i-plus"/></svg></span>New</button>
+      </div>
+    </div>
+    <div class="composer"><span>Ask about this room</span><button class="send" aria-label="Send"><svg class="i"><use href="#i-up"/></svg></button></div>
+  </aside>
+</div>
+
+<nav class="palette glass" role="toolbar" aria-label="Tools">
+  <button class="tool" aria-pressed="true"><svg class="i"><use href="#i-select"/></svg><span>Select</span></button>
+  <button class="tool" aria-pressed="false"><svg class="i"><use href="#i-wall"/></svg><span>Wall</span></button>
+  <button class="tool" aria-pressed="false"><svg class="i"><use href="#i-door"/></svg><span>Door</span></button>
+  <button class="tool" aria-pressed="false"><svg class="i"><use href="#i-window"/></svg><span>Window</span></button>
+  <button class="tool" aria-pressed="false"><svg class="i"><use href="#i-ruler"/></svg><span>Measure</span></button>
+</nav>
+
+</body>
+</html>

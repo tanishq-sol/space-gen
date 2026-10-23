@@ -383,7 +383,7 @@ export function AholoViewerWorkspace({
 
   return (
     <div
-      className={`relative w-screen h-screen overflow-hidden bg-neutral-950 text-neutral-100 select-none font-sans ${className}`}
+      className={`relative w-screen h-screen overflow-hidden bg-background text-text-primary select-none font-sans ${className}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -426,13 +426,13 @@ export function AholoViewerWorkspace({
         {/* Empty State Banner (Clean screen when no model loaded) */}
         {!activeRecord && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 pointer-events-none">
-            <div className="max-w-md w-full bg-neutral-900/75 border border-neutral-800/80 backdrop-blur-xl rounded-2xl p-8 text-center shadow-2xl space-y-4 pointer-events-auto">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="max-w-md w-full bg-surface border border-border backdrop-blur-xl rounded-2xl p-8 text-center shadow-2xl space-y-4 pointer-events-auto">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
                 <Box className="w-7 h-7 animate-pulse" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white tracking-wide">Aholo 3DGS Studio</h2>
-                <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+                <h2 className="text-lg font-bold text-text-primary">Aholo 3DGS Studio</h2>
+                <p className="text-xs text-text-secondary mt-1 leading-relaxed">
                   拖入 3D 高斯泼溅文件（.ply, .spz, .sog, .splat）或三维网格（.glb）即刻硬件光栅化呈现
                 </p>
               </div>
@@ -440,7 +440,7 @@ export function AholoViewerWorkspace({
                 <button
                   type="button"
                   onClick={handleLoadSample}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-dark text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition active:scale-95"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>加载官方真实展厅</span>
@@ -448,7 +448,7 @@ export function AholoViewerWorkspace({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 text-xs font-semibold transition active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface-elevated hover:bg-border text-text-primary border border-border text-xs font-semibold transition active:scale-95"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>选择本地 3D 文件</span>
@@ -462,45 +462,45 @@ export function AholoViewerWorkspace({
       {/* =========================================================================
           TOP FLOATING STATUS HUD
           ========================================================================= */}
-      <header className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-2xl bg-neutral-900/85 backdrop-blur-md border border-neutral-800/80 shadow-2xl text-xs">
+      <header className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-2xl bg-surface backdrop-blur-md border border-border shadow-2xl text-xs">
         {/* Brand indicator */}
-        <div className="flex items-center gap-2 font-semibold text-white tracking-wide">
+        <div className="flex items-center gap-2 font-semibold text-text-primary">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>Aholo Studio</span>
         </div>
 
-        <div className="w-[1px] h-4 bg-neutral-800" />
+        <div className="w-[1px] h-4 bg-surface-elevated" />
 
         {/* Active file badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-neutral-800 text-neutral-300 max-w-[200px] truncate">
-          <FileCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-elevated border border-border text-text-primary max-w-[200px] truncate">
+          <FileCheck className="w-3.5 h-3.5 text-accent shrink-0" />
           <span className="truncate">{activeRecord ? activeRecord.name : '等待载入模型...'}</span>
         </div>
 
         {/* Live FPS */}
-        <div className="px-2.5 py-1 rounded-lg bg-black/40 border border-neutral-800 flex items-center gap-1 font-mono">
-          <span className="text-neutral-400">FPS:</span>
-          <strong className={fps >= 50 ? 'text-emerald-400' : fps >= 30 ? 'text-amber-400' : 'text-rose-400'}>
+        <div className="px-2.5 py-1 rounded-lg bg-surface-elevated border border-border flex items-center gap-1">
+          <span className="text-text-secondary">FPS:</span>
+          <strong className={fps >= 50 ? 'text-success' : fps >= 30 ? 'text-warning' : 'text-rose-400'}>
             {fps || '--'}
           </strong>
         </div>
 
         {/* Splat Count */}
-        <div className="px-2.5 py-1 rounded-lg bg-black/40 border border-neutral-800 flex items-center gap-1 font-mono">
-          <span className="text-neutral-400">Splats:</span>
-          <strong className="text-indigo-300">{splatCount ? splatCount.toLocaleString() : '--'}</strong>
+        <div className="px-2.5 py-1 rounded-lg bg-surface-elevated border border-border flex items-center gap-1">
+          <span className="text-text-secondary">Splats:</span>
+          <strong className="text-accent">{splatCount ? splatCount.toLocaleString() : '--'}</strong>
         </div>
 
-        <div className="w-[1px] h-4 bg-neutral-800" />
+        <div className="w-[1px] h-4 bg-surface-elevated" />
 
         {/* Sample button */}
         <button
           type="button"
           onClick={handleLoadSample}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 hover:bg-accent/10 text-accent border border-accent/30 text-xs font-medium transition"
           title="加载内置展厅样例 Hurstville Museum Gallery (1.9MB SOG)"
         >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <Sparkles className="w-3.5 h-3.5 text-accent" />
           <span>Sample</span>
         </button>
 
@@ -512,10 +512,10 @@ export function AholoViewerWorkspace({
               curr === '#0a0a0f' ? '#000000' : curr === '#000000' ? '#1f1f2e' : '#0a0a0f'
             )
           }
-          className="px-2 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs flex items-center gap-1"
+          className="px-2 py-1 rounded-lg bg-surface-elevated hover:bg-border text-text-primary text-xs flex items-center gap-1"
           title="切换视口背景色"
         >
-          <span className="w-2.5 h-2.5 rounded-full border border-neutral-600" style={{ backgroundColor: bgColor }} />
+          <span className="w-2.5 h-2.5 rounded-full border border-border" style={{ backgroundColor: bgColor }} />
           <span>BG</span>
         </button>
       </header>
@@ -527,10 +527,10 @@ export function AholoViewerWorkspace({
         <button
           type="button"
           onClick={() => toggleLeftRail(false)}
-          className="absolute left-3 top-3 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 shadow-xl backdrop-blur-md text-xs font-medium transition active:scale-95"
+          className="absolute left-3 top-3 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface hover:bg-surface-elevated text-text-primary border border-border shadow-xl backdrop-blur-md text-xs font-medium transition active:scale-95"
           title="展开资产与相机面板"
         >
-          <Upload className="w-3.5 h-3.5 text-indigo-400" />
+          <Upload className="w-3.5 h-3.5 text-accent" />
           <span>导入与相机</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -543,11 +543,11 @@ export function AholoViewerWorkspace({
         <button
           type="button"
           onClick={() => toggleRightRail(false)}
-          className="absolute right-3 top-3 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 shadow-xl backdrop-blur-md text-xs font-medium transition active:scale-95"
+          className="absolute right-3 top-3 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface hover:bg-surface-elevated text-text-primary border border-border shadow-xl backdrop-blur-md text-xs font-medium transition active:scale-95"
           title="展开渲染设置面板"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
-          <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+          <Sliders className="w-3.5 h-3.5 text-accent" />
           <span>渲染参数</span>
         </button>
       )}
@@ -556,20 +556,20 @@ export function AholoViewerWorkspace({
           LEFT RAIL: 资产导入区 / 导入文件列表 / 相机操作台
           ========================================================================= */}
       <aside
-        className={`absolute left-3 top-3 bottom-3 z-30 w-80 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800/90 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+        className={`absolute left-3 top-3 bottom-3 z-30 w-80 bg-surface backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
           leftCollapsed ? '-translate-x-[calc(100%+16px)] pointer-events-none' : 'translate-x-0'
         }`}
       >
         {/* Header */}
-        <div className="h-12 px-4 border-b border-neutral-800/80 flex items-center justify-between shrink-0 bg-neutral-900/60">
-          <div className="flex items-center gap-2 font-semibold text-sm text-white">
-            <Layers className="w-4 h-4 text-indigo-400" />
+        <div className="h-12 px-4 border-b border-border flex items-center justify-between shrink-0 bg-surface">
+          <div className="flex items-center gap-2 font-semibold text-sm text-text-primary">
+            <Layers className="w-4 h-4 text-accent" />
             <span>资产与相机工作台</span>
           </div>
           <button
             type="button"
             onClick={() => toggleLeftRail(true)}
-            className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition"
             title="收起左侧面板"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -580,15 +580,15 @@ export function AholoViewerWorkspace({
         <div className="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs scrollbar-thin scrollbar-thumb-neutral-700">
           {/* SECTION 1: 资产导入区 */}
           <section className="space-y-2.5">
-            <div className="text-[11px] font-semibold tracking-wider uppercase text-neutral-400">
+            <div className="text-[11px] font-semibold text-text-secondary">
               资产导入 (Asset Ingestion)
             </div>
 
             {/* Local File Picker Button */}
-            <label className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-dashed border-neutral-700 hover:border-indigo-500 bg-neutral-950/40 hover:bg-indigo-950/20 cursor-pointer transition text-center">
-              <Upload className="w-5 h-5 text-indigo-400 mb-1 group-hover:scale-110 transition-transform" />
-              <span className="font-semibold text-white">选择本地文件导入</span>
-              <span className="text-[10px] text-neutral-400 mt-0.5">
+            <label className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-dashed border-border hover:border-accent bg-background hover:bg-indigo-950/20 cursor-pointer transition text-center">
+              <Upload className="w-5 h-5 text-accent mb-1 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold text-text-primary">选择本地文件导入</span>
+              <span className="text-[11px] text-text-secondary mt-0.5">
                 支持 .ply, .spz, .splat, .ksplat, .sog, .glb, .zip
               </span>
               <input
@@ -611,13 +611,13 @@ export function AholoViewerWorkspace({
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="粘贴 https://... 3DGS 或模型链接"
                 rows={2}
-                className="w-full px-3 py-2 rounded-xl bg-black/50 border border-neutral-800 text-xs text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-indigo-500 transition resize-none font-mono"
+                className="w-full px-3 py-2 rounded-xl bg-surface-elevated border border-border text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition resize-none"
               />
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleClipboardLoad}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium transition active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-surface-elevated hover:bg-border text-text-primary font-medium transition active:scale-95"
                 >
                   <ClipboardPaste className="w-3.5 h-3.5" />
                   <span>剪贴板加载</span>
@@ -625,7 +625,7 @@ export function AholoViewerWorkspace({
                 <button
                   type="submit"
                   disabled={!urlInput.trim()}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white font-medium shadow-md shadow-indigo-600/20 transition active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:pointer-events-none text-white font-medium shadow-md shadow-indigo-600/20 transition active:scale-95"
                 >
                   <Link2 className="w-3.5 h-3.5" />
                   <span>加载 URL</span>
@@ -636,7 +636,7 @@ export function AholoViewerWorkspace({
 
           {/* SECTION 2: 已导入文件管理列表 */}
           <section className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-neutral-400">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-text-secondary">
               <span>已导入文件 ({records.length})</span>
               {records.length > 0 && (
                 <button
@@ -646,7 +646,7 @@ export function AholoViewerWorkspace({
                     setActiveRecordId(null);
                     setSplatCount(null);
                   }}
-                  className="text-neutral-500 hover:text-rose-400 text-[10px] transition"
+                  className="text-text-secondary hover:text-rose-400 text-[11px] transition"
                 >
                   清空全部
                 </button>
@@ -654,7 +654,7 @@ export function AholoViewerWorkspace({
             </div>
 
             {records.length === 0 ? (
-              <div className="p-4 rounded-xl border border-neutral-800/80 bg-neutral-950/30 text-center text-neutral-500 text-xs">
+              <div className="p-4 rounded-xl border border-border bg-background text-center text-text-secondary text-xs">
                 <span>尚未导入任何 3D 文件</span>
               </div>
             ) : (
@@ -670,36 +670,36 @@ export function AholoViewerWorkspace({
                       }}
                       className={`group relative p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-2 ${
                         isActive
-                          ? 'bg-indigo-950/40 border-indigo-500/60 shadow-md shadow-indigo-950/50'
-                          : 'bg-neutral-950/40 border-neutral-800/70 hover:border-neutral-700 hover:bg-neutral-800/40'
+                          ? 'bg-indigo-950/40 border-accent/60 shadow-md shadow-indigo-950/50'
+                          : 'bg-background border-border hover:border-border hover:bg-surface-elevated'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         {/* Format Badge */}
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          className={`px-1.5 py-0.5 rounded text-[11px] font-bold shrink-0 ${
                             rec.format === 'SOG'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              ? 'bg-success-muted text-success border border-success/30'
                               : rec.format === 'PLY'
-                              ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                              ? 'bg-accent/10 text-accent border border-accent/30'
                               : rec.format === 'GLB' || rec.format === 'GLTF'
-                              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              ? 'bg-accent/10 text-accent border border-accent/30'
+                              : 'bg-warning-muted text-warning border border-warning'
                           }`}
                         >
                           {rec.format}
                         </span>
 
                         <div className="min-w-0">
-                          <div className={`font-medium truncate ${isActive ? 'text-white' : 'text-neutral-300'}`}>
+                          <div className={`font-medium truncate ${isActive ? 'text-text-primary' : 'text-text-primary'}`}>
                             {rec.name}
                           </div>
-                          <div className="text-[10px] text-neutral-500">{rec.size}</div>
+                          <div className="text-[11px] text-text-secondary">{rec.size}</div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {rec.status === 'ready' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                        {rec.status === 'ready' && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
                         {rec.status === 'error' && (
                           <span title={rec.error}>
                             <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
@@ -708,7 +708,7 @@ export function AholoViewerWorkspace({
                         <button
                           type="button"
                           onClick={(e) => handleRemoveRecord(e, rec.id)}
-                          className="p-1 rounded text-neutral-500 hover:text-rose-400 hover:bg-neutral-800 transition"
+                          className="p-1 rounded text-text-secondary hover:text-rose-400 hover:bg-surface-elevated transition"
                           title="移除此模型"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -722,12 +722,12 @@ export function AholoViewerWorkspace({
           </section>
 
           {/* SECTION 3: 相机操作台 */}
-          <section className="space-y-3 pt-2 border-t border-neutral-800/80">
-            <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-neutral-400">
+          <section className="space-y-3 pt-2 border-t border-border">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-text-secondary">
               <span>相机操作台 (Camera Desk)</span>
               {/* Orbit Mode Switch */}
               <label className="flex items-center gap-1.5 cursor-pointer">
-                <span className="text-[10px] text-neutral-400">{useOrbit ? '环绕 (Orbit)' : '漫游 (WASD)'}</span>
+                <span className="text-[11px] text-text-secondary">{useOrbit ? '环绕 (Orbit)' : '漫游 (WASD)'}</span>
                 <input
                   type="checkbox"
                   checked={useOrbit}
@@ -736,7 +736,7 @@ export function AholoViewerWorkspace({
                 />
                 <span
                   className={`w-7 h-4 flex items-center rounded-full p-0.5 transition-colors ${
-                    useOrbit ? 'bg-indigo-600' : 'bg-neutral-700'
+                    useOrbit ? 'bg-accent' : 'bg-border'
                   }`}
                 >
                   <span
@@ -750,17 +750,17 @@ export function AholoViewerWorkspace({
 
             {/* Coordinate System Selector */}
             <div className="space-y-1">
-              <label className="text-[11px] text-neutral-400">坐标系基准 (Coordinate System):</label>
-              <div className="grid grid-cols-3 gap-1 bg-black/40 p-1 rounded-xl border border-neutral-800">
+              <label className="text-[11px] text-text-secondary">坐标系基准 (Coordinate System):</label>
+              <div className="grid grid-cols-3 gap-1 bg-surface-elevated p-1 rounded-xl border border-border">
                 {(['opencv', 'opengl', 'aholo'] as const).map((cs) => (
                   <button
                     key={cs}
                     type="button"
                     onClick={() => handleCoordChange(cs)}
-                    className={`py-1 text-center rounded-lg text-xs font-semibold uppercase transition ${
+                    className={`py-1 text-center rounded-lg text-xs font-semibold  transition ${
                       coordSystem === cs
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-neutral-400 hover:text-neutral-200'
+                        ? 'bg-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
                     }`}
                   >
                     {cs}
@@ -771,7 +771,7 @@ export function AholoViewerWorkspace({
 
             {/* Far Plane Input */}
             <div className="flex items-center justify-between">
-              <label className="text-[11px] text-neutral-400">远裁剪面 (Far Plane):</label>
+              <label className="text-[11px] text-text-secondary">远裁剪面 (Far Plane):</label>
               <input
                 type="number"
                 min={100}
@@ -779,7 +779,7 @@ export function AholoViewerWorkspace({
                 step={100}
                 value={farPlane}
                 onChange={(e) => handleFarChange(Number(e.target.value) || 2000)}
-                className="w-24 px-2.5 py-1 rounded-lg bg-black/50 border border-neutral-800 text-right text-xs font-mono text-neutral-200 focus:outline-none focus:border-indigo-500"
+                className="w-24 px-2.5 py-1 rounded-lg bg-surface-elevated border border-border text-right text-xs text-text-primary focus:outline-none focus:border-accent"
               />
             </div>
 
@@ -788,7 +788,7 @@ export function AholoViewerWorkspace({
               <button
                 type="button"
                 onClick={handleCopyCamera}
-                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium transition active:scale-95"
+                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-surface-elevated hover:bg-border text-text-primary text-xs font-medium transition active:scale-95"
                 title="将当前相机的 position, rotation, up 序列化为 JSON 写入剪贴板"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -797,7 +797,7 @@ export function AholoViewerWorkspace({
               <button
                 type="button"
                 onClick={handlePasteCamera}
-                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium transition active:scale-95"
+                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-surface-elevated hover:bg-border text-text-primary text-xs font-medium transition active:scale-95"
                 title="从剪贴板读取相机 JSON 恢复视角"
               >
                 <ClipboardPaste className="w-3.5 h-3.5" />
@@ -806,7 +806,7 @@ export function AholoViewerWorkspace({
               <button
                 type="button"
                 onClick={handleResetCamera}
-                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition active:scale-95"
+                className="flex items-center justify-center gap-1 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/10 text-accent border border-accent/30 text-xs font-medium transition active:scale-95"
                 title="重置到默认视角"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -821,20 +821,20 @@ export function AholoViewerWorkspace({
           RIGHT RAIL: 渲染预设选择器 & 核心参数微调
           ========================================================================= */}
       <aside
-        className={`absolute right-3 top-3 bottom-3 z-30 w-84 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800/90 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+        className={`absolute right-3 top-3 bottom-3 z-30 w-84 bg-surface backdrop-blur-xl border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
           rightCollapsed ? 'translate-x-[calc(100%+16px)] pointer-events-none' : 'translate-x-0'
         }`}
       >
         {/* Header */}
-        <div className="h-12 px-4 border-b border-neutral-800/80 flex items-center justify-between shrink-0 bg-neutral-900/60">
-          <div className="flex items-center gap-2 font-semibold text-sm text-white">
-            <Sliders className="w-4 h-4 text-indigo-400" />
+        <div className="h-12 px-4 border-b border-border flex items-center justify-between shrink-0 bg-surface">
+          <div className="flex items-center gap-2 font-semibold text-sm text-text-primary">
+            <Sliders className="w-4 h-4 text-accent" />
             <span>渲染参数微调 (Pipeline)</span>
           </div>
           <button
             type="button"
             onClick={() => toggleRightRail(true)}
-            className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition"
             title="收起右侧面板"
           >
             <ChevronRight className="w-4 h-4" />
@@ -845,9 +845,9 @@ export function AholoViewerWorkspace({
         <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-xs scrollbar-thin scrollbar-thumb-neutral-700">
           {/* 1. 渲染预设选择器 */}
           <section className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-neutral-400">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-text-secondary">
               <span>渲染预设 (Presets)</span>
-              <span className="text-[10px] text-indigo-400">
+              <span className="text-[11px] text-accent">
                 {VIEWER_SPLATTING_PRESETS[pipelineParams.splattingPreset]?.nameZh || '自定义'}
               </span>
             </div>
@@ -855,28 +855,28 @@ export function AholoViewerWorkspace({
             <select
               value={pipelineParams.splattingPreset}
               onChange={(e) => handleSelectPreset(e.target.value as SplattingPresetId)}
-              className="w-full px-3 py-2 rounded-xl bg-black/60 border border-neutral-700 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full px-3 py-2 rounded-xl bg-surface-elevated border border-border text-xs text-text-primary focus:outline-none focus:border-accent font-medium"
             >
               {(Object.keys(VIEWER_SPLATTING_PRESETS) as SplattingPresetId[]).map((presetId) => (
-                <option key={presetId} value={presetId} className="bg-neutral-900 text-white">
+                <option key={presetId} value={presetId} className="bg-surface text-text-primary">
                   {VIEWER_SPLATTING_PRESETS[presetId].nameZh} - {VIEWER_SPLATTING_PRESETS[presetId].nameEn}
                 </option>
               ))}
             </select>
 
-            <div className="p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-[10px] text-indigo-300 leading-relaxed">
+            <div className="p-2.5 rounded-xl bg-indigo-950/30 border border-accent/20 text-[11px] text-accent leading-relaxed">
               💡 {VIEWER_SPLATTING_PRESETS[pipelineParams.splattingPreset]?.descZh}
-              <div className="text-neutral-400 mt-0.5">
+              <div className="text-text-secondary mt-0.5">
                 预设会影响初始 Pack type，建议在导入大模型前选择。
               </div>
             </div>
           </section>
 
           {/* 2. 视口与像素比 (Display & Pixel Ratio) */}
-          <div className="p-3 rounded-xl bg-black/40 border border-neutral-800 space-y-2.5">
-            <div className="flex items-center justify-between text-neutral-300 font-medium">
+          <div className="p-3 rounded-xl bg-surface-elevated border border-border space-y-2.5">
+            <div className="flex items-center justify-between text-text-primary font-medium">
               <span>像素采样比 (Pixel Ratio)</span>
-              <span className="font-mono text-indigo-300">{pipelineParams.pixelRatio.toFixed(1)}x</span>
+              <span className="text-accent">{pipelineParams.pixelRatio.toFixed(1)}x</span>
             </div>
             <input
               type="range"
@@ -885,34 +885,34 @@ export function AholoViewerWorkspace({
               step={0.1}
               value={pipelineParams.pixelRatio}
               onChange={(e) => handleParamChange('pixelRatio', Number(e.target.value))}
-              className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded-lg"
+              className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded-lg"
             />
           </div>
 
           {/* 3. 打包设置 (Pack Folder) */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 overflow-hidden">
+          <div className="rounded-xl border border-border bg-background overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenFolders((prev) => ({ ...prev, pack: !prev.pack }))}
-              className="w-full px-3.5 py-2.5 flex items-center justify-between text-neutral-200 font-medium hover:bg-neutral-800/40 transition"
+              className="w-full px-3.5 py-2.5 flex items-center justify-between text-text-primary font-medium hover:bg-surface-elevated transition"
             >
               <div className="flex items-center gap-2">
-                <Box className="w-3.5 h-3.5 text-indigo-400" />
+                <Box className="w-3.5 h-3.5 text-accent" />
                 <span>数据打包 (Pack)</span>
               </div>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${openFolders.pack ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 text-text-secondary transition-transform ${openFolders.pack ? 'rotate-180' : ''}`}
               />
             </button>
 
             {openFolders.pack && (
-              <div className="p-3 border-t border-neutral-800/80 space-y-2.5 bg-black/20">
+              <div className="p-3 border-t border-border space-y-2.5 bg-surface-elevated">
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Pack Type (导入生效):</span>
+                  <span className="text-text-secondary">Pack Type (导入生效):</span>
                   <select
                     value={pipelineParams.splatPackType}
                     onChange={(e) => handleParamChange('splatPackType', Number(e.target.value))}
-                    className="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-xs text-white"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-xs text-text-primary"
                   >
                     <option value={SplatPackType.Compressed}>Compressed</option>
                     <option value={SplatPackType.SuperCompressed}>SuperCompressed</option>
@@ -921,11 +921,11 @@ export function AholoViewerWorkspace({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Max SH 阶数:</span>
+                  <span className="text-text-secondary">Max SH 阶数:</span>
                   <select
                     value={pipelineParams.maxSh}
                     onChange={(e) => handleParamChange('maxSh', Number(e.target.value))}
-                    className="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-xs text-white"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-xs text-text-primary"
                   >
                     <option value={0}>0 (仅漫反射 / SOG)</option>
                     <option value={1}>1</option>
@@ -935,7 +935,7 @@ export function AholoViewerWorkspace({
                 </div>
 
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">SH 球谐预计算 (Precalculate):</span>
+                  <span className="text-text-secondary">SH 球谐预计算 (Precalculate):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.precalculateEnabled}
@@ -945,7 +945,7 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">高精度打包 (High Precision):</span>
+                  <span className="text-text-secondary">高精度打包 (High Precision):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.packHighPrecisionEnabled}
@@ -955,7 +955,7 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">相机相对坐标 (Camera Relative):</span>
+                  <span className="text-text-secondary">相机相对坐标 (Camera Relative):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.cameraRelativeEnabled}
@@ -965,7 +965,7 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">预排序布局 (Sorted Layout):</span>
+                  <span className="text-text-secondary">预排序布局 (Sorted Layout):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.sortedLayoutEnabled}
@@ -978,25 +978,25 @@ export function AholoViewerWorkspace({
           </div>
 
           {/* 4. 光栅化设置 (Raster Folder) */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 overflow-hidden">
+          <div className="rounded-xl border border-border bg-background overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenFolders((prev) => ({ ...prev, raster: !prev.raster }))}
-              className="w-full px-3.5 py-2.5 flex items-center justify-between text-neutral-200 font-medium hover:bg-neutral-800/40 transition"
+              className="w-full px-3.5 py-2.5 flex items-center justify-between text-text-primary font-medium hover:bg-surface-elevated transition"
             >
               <div className="flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                <Activity className="w-3.5 h-3.5 text-accent" />
                 <span>光栅化渲染 (Raster)</span>
               </div>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${openFolders.raster ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 text-text-secondary transition-transform ${openFolders.raster ? 'rotate-180' : ''}`}
               />
             </button>
 
             {openFolders.raster && (
-              <div className="p-3 border-t border-neutral-800/80 space-y-3 bg-black/20">
+              <div className="p-3 border-t border-border space-y-3 bg-surface-elevated">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">归一化衰减 (Normalized Falloff):</span>
+                  <span className="text-text-secondary">归一化衰减 (Normalized Falloff):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.normalizedFalloff}
@@ -1006,9 +1006,9 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>焦距微调 (Focal Adjustment)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.focalAdjustment.toFixed(1)}</span>
+                    <span className="text-text-primary">{pipelineParams.focalAdjustment.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
@@ -1017,14 +1017,14 @@ export function AholoViewerWorkspace({
                     step={0.1}
                     value={pipelineParams.focalAdjustment}
                     onChange={(e) => handleParamChange('focalAdjustment', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>细节剔除阈值 (Detail Culling)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.detailCullingThreshold}</span>
+                    <span className="text-text-primary">{pipelineParams.detailCullingThreshold}</span>
                   </div>
                   <input
                     type="range"
@@ -1033,14 +1033,14 @@ export function AholoViewerWorkspace({
                     step={1}
                     value={pipelineParams.detailCullingThreshold}
                     onChange={(e) => handleParamChange('detailCullingThreshold', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>预模糊量 (Pre Blur)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.preBlurAmount.toFixed(1)}</span>
+                    <span className="text-text-primary">{pipelineParams.preBlurAmount.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
@@ -1049,14 +1049,14 @@ export function AholoViewerWorkspace({
                     step={0.1}
                     value={pipelineParams.preBlurAmount}
                     onChange={(e) => handleParamChange('preBlurAmount', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>最大像素半径 (Max Pixel Radius)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.maxPixelRadius}</span>
+                    <span className="text-text-primary">{pipelineParams.maxPixelRadius}</span>
                   </div>
                   <input
                     type="range"
@@ -1065,7 +1065,7 @@ export function AholoViewerWorkspace({
                     step={64}
                     value={pipelineParams.maxPixelRadius}
                     onChange={(e) => handleParamChange('maxPixelRadius', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
               </div>
@@ -1073,25 +1073,25 @@ export function AholoViewerWorkspace({
           </div>
 
           {/* 5. 深度排序设置 (Sort Folder) */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 overflow-hidden">
+          <div className="rounded-xl border border-border bg-background overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenFolders((prev) => ({ ...prev, sort: !prev.sort }))}
-              className="w-full px-3.5 py-2.5 flex items-center justify-between text-neutral-200 font-medium hover:bg-neutral-800/40 transition"
+              className="w-full px-3.5 py-2.5 flex items-center justify-between text-text-primary font-medium hover:bg-surface-elevated transition"
             >
               <div className="flex items-center gap-2">
-                <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                <Layers className="w-3.5 h-3.5 text-accent" />
                 <span>视锥深度排序 (Worker Sort)</span>
               </div>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${openFolders.sort ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 text-text-secondary transition-transform ${openFolders.sort ? 'rotate-180' : ''}`}
               />
             </button>
 
             {openFolders.sort && (
-              <div className="p-3 border-t border-neutral-800/80 space-y-3 bg-black/20">
+              <div className="p-3 border-t border-border space-y-3 bg-surface-elevated">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">高精度距离计算 (Sort Precision):</span>
+                  <span className="text-text-secondary">高精度距离计算 (Sort Precision):</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.sortHighPrecisionEnabled}
@@ -1101,9 +1101,9 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>最小重排间隔 (Min Interval)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.minIntervalMs} ms</span>
+                    <span className="text-text-primary">{pipelineParams.minIntervalMs} ms</span>
                   </div>
                   <input
                     type="range"
@@ -1112,14 +1112,14 @@ export function AholoViewerWorkspace({
                     step={16}
                     value={pipelineParams.minIntervalMs}
                     onChange={(e) => handleParamChange('minIntervalMs', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>点位移动阈值 (Splat Distance)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.sortSplatDistance}</span>
+                    <span className="text-text-primary">{pipelineParams.sortSplatDistance}</span>
                   </div>
                   <input
                     type="range"
@@ -1128,7 +1128,7 @@ export function AholoViewerWorkspace({
                     step={0.05}
                     value={pipelineParams.sortSplatDistance}
                     onChange={(e) => handleParamChange('sortSplatDistance', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
               </div>
@@ -1136,25 +1136,25 @@ export function AholoViewerWorkspace({
           </div>
 
           {/* 6. 色调映射 (Tone Mapping) */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 overflow-hidden">
+          <div className="rounded-xl border border-border bg-background overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenFolders((prev) => ({ ...prev, toneMapping: !prev.toneMapping }))}
-              className="w-full px-3.5 py-2.5 flex items-center justify-between text-neutral-200 font-medium hover:bg-neutral-800/40 transition"
+              className="w-full px-3.5 py-2.5 flex items-center justify-between text-text-primary font-medium hover:bg-surface-elevated transition"
             >
               <div className="flex items-center gap-2">
-                <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                <Eye className="w-3.5 h-3.5 text-accent" />
                 <span>色调映射 (Tone Mapping)</span>
               </div>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${openFolders.toneMapping ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 text-text-secondary transition-transform ${openFolders.toneMapping ? 'rotate-180' : ''}`}
               />
             </button>
 
             {openFolders.toneMapping && (
-              <div className="p-3 border-t border-neutral-800/80 space-y-3 bg-black/20">
+              <div className="p-3 border-t border-border space-y-3 bg-surface-elevated">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-neutral-400">开启色调映射:</span>
+                  <span className="text-text-secondary">开启色调映射:</span>
                   <input
                     type="checkbox"
                     checked={pipelineParams.toneMappingEnabled}
@@ -1164,11 +1164,11 @@ export function AholoViewerWorkspace({
                 </label>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">色调映射算法 (Curve):</span>
+                  <span className="text-text-secondary">色调映射算法 (Curve):</span>
                   <select
                     value={pipelineParams.toneMapping}
                     onChange={(e) => handleParamChange('toneMapping', Number(e.target.value))}
-                    className="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-xs text-white"
+                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-xs text-text-primary"
                   >
                     <option value={ToneMapping.Neutral}>Neutral</option>
                     <option value={ToneMapping.ACES}>ACES</option>
@@ -1179,9 +1179,9 @@ export function AholoViewerWorkspace({
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between text-neutral-400">
+                  <div className="flex justify-between text-text-secondary">
                     <span>曝光度 (Exposure)</span>
-                    <span className="font-mono text-neutral-200">{pipelineParams.exposure.toFixed(1)}</span>
+                    <span className="text-text-primary">{pipelineParams.exposure.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
@@ -1190,7 +1190,7 @@ export function AholoViewerWorkspace({
                     step={0.1}
                     value={pipelineParams.exposure}
                     onChange={(e) => handleParamChange('exposure', Number(e.target.value))}
-                    className="w-full accent-indigo-500 h-1.5 bg-neutral-800 rounded"
+                    className="w-full accent-indigo-500 h-1.5 bg-surface-elevated rounded"
                   />
                 </div>
               </div>
@@ -1203,10 +1203,10 @@ export function AholoViewerWorkspace({
           DRAG AND DROP OVERLAY
           ========================================================================= */}
       {isDragOver && (
-        <div className="absolute inset-0 z-50 bg-indigo-950/80 backdrop-blur-md border-4 border-dashed border-indigo-500 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-150">
-          <Upload className="w-16 h-16 text-indigo-400 mb-3 animate-bounce" />
-          <h2 className="text-2xl font-bold text-white mb-1">释放文件以导入项目</h2>
-          <p className="text-sm text-indigo-200">
+        <div className="absolute inset-0 z-50 bg-indigo-950/80 backdrop-blur-md border-4 border-dashed border-accent flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-150">
+          <Upload className="w-16 h-16 text-accent mb-3 animate-bounce" />
+          <h2 className="text-2xl font-bold text-text-primary mb-1">释放文件以导入项目</h2>
+          <p className="text-sm text-accent">
             支持 3DGS 文件（.ply, .spz, .splat, .sog, .esz）及 LCC / LCC2 ZIP 压缩包
           </p>
         </div>
@@ -1221,18 +1221,18 @@ export function AholoViewerWorkspace({
             toastMessage.type === 'error'
               ? 'bg-rose-950/90 border-rose-500/50 text-rose-200'
               : toastMessage.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
-              : 'bg-neutral-900/90 border-neutral-700/80 text-neutral-200'
+              ? 'bg-emerald-950/90 border-success/30 text-emerald-200'
+              : 'bg-surface border-border text-text-primary'
           }`}
         >
           {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
-          {toastMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
-          {toastMessage.type === 'info' && <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />}
+          {toastMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 text-success shrink-0" />}
+          {toastMessage.type === 'info' && <Sparkles className="w-4 h-4 text-accent shrink-0" />}
           <span>{toastMessage.text}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="ml-2 text-neutral-400 hover:text-white"
+            className="ml-2 text-text-secondary hover:text-text-primary"
           >
             ✕
           </button>

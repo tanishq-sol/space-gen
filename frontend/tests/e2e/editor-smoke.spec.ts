@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import { screenshotPath } from './support/artifacts';
 
-test.describe('SpaceGen 3D Editor Smoke Test', () => {
+test.describe('Ellips 3D Editor Smoke Test', () => {
   test('editor page loads, 3D canvas renders, and no console errors occur', async ({ page }) => {
     const consoleErrors: string[] = [];
 
@@ -24,7 +24,7 @@ test.describe('SpaceGen 3D Editor Smoke Test', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // 2. Expect layout panels to be visible
-    await expect(page.locator('text=Spatial AI Co-Pilot')).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('heading', { name: 'Ask', exact: true })).toBeVisible({ timeout: 20000 });
     await expect(page.locator('text=Scene Hierarchy')).toBeVisible({ timeout: 20000 });
 
     // 3. Expect 3D Editor floating toolbar CAD tools to be mounted
