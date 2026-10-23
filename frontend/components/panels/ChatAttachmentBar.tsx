@@ -63,14 +63,14 @@ export function ChatAttachmentBar({
                 {selectedNode.name || selectedNode.id}
               </span>
               {dimsFormatted && (
-                <span className="text-[10px] text-text-muted font-mono">
+                <span className="text-[11px] text-text-muted">
                   ({dimsFormatted})
                 </span>
               )}
             </div>
           </div>
 
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-surface-elevated text-accent border border-accent/20">
+          <span className="text-[11px] px-1.5 py-0.5 rounded bg-surface-elevated text-accent border border-accent/20">
             Selected
           </span>
         </div>
@@ -87,13 +87,13 @@ export function ChatAttachmentBar({
                 className="w-7 h-7 rounded object-cover border border-border shrink-0"
               />
             ) : (
-              <div className="w-7 h-7 rounded bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded bg-accent/10 text-accent flex items-center justify-center shrink-0">
                 <FileCode size={14} />
               </div>
             )}
             <div className="truncate">
               <div className="font-medium text-[11px] truncate">{attachedFile.name}</div>
-              <span className="text-[9px] text-text-muted font-mono">
+              <span className="text-[11px] text-text-muted">
                 {attachedFile.type === 'image' ? 'Reference Photo' : '3D GLB Model'}
               </span>
             </div>
@@ -104,7 +104,7 @@ export function ChatAttachmentBar({
               <button
                 onClick={() => onQuickReplace(selectedNodeId!)}
                 title="Replace selected 3D item with this photo"
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white hover:bg-accent-light text-[10px] font-medium shadow-sm transition-all"
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white hover:bg-accent-light text-[11px] font-medium shadow-sm transition"
               >
                 <ArrowRightLeft size={10} />
                 <span>Swap In</span>
@@ -113,7 +113,7 @@ export function ChatAttachmentBar({
 
             <button
               onClick={onClearAttachment}
-              className="p-1 rounded-md text-text-muted hover:text-red-400 hover:bg-surface-elevated transition-colors"
+              className="p-1 rounded-md text-text-muted hover:text-error hover:bg-surface-elevated transition-colors"
             >
               <X size={13} />
             </button>

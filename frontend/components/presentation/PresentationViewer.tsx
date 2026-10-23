@@ -134,7 +134,7 @@ export default function PresentationViewer({ sceneSnapshot, fallbackScan, sceneK
   const scanToScene: Matrix4 = meta.scanToScene || fallbackScan?.scanToScene || IDENTITY;
   const masks: MaskRegion[] = meta.maskRegions || NO_MASKS;
 
-  if (error) return <div role="alert" className="flex h-full items-center justify-center text-red-400">{error}</div>;
+  if (error) return <div role="alert" className="flex h-full items-center justify-center text-error">{error}</div>;
   if (!ready) return <div className="flex h-full items-center justify-center gap-2 text-text-muted"><Loader2 className="h-5 w-5 animate-spin" />Loading scene…</div>;
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">

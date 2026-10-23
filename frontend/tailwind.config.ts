@@ -6,54 +6,55 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI Variable"', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', '-apple-system', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       colors: {
-        // Core palette — refined dark theme
-        background: "#06060C",
-        surface: "#0E0E18",
-        "surface-elevated": "#161626",
-        "surface-hover": "#1E1E30",
-        border: "#1E1E32",
-        "border-subtle": "#14142A",
+        // Light palette (DESIGN.md). Semantic names first, legacy names remapped below.
+        vellum: "#F5F7FA",
+        paper: "#FFFFFF",
+        ink: "#0B1F3A",
+        navy: "#1B3A6B",
+        slate: "#4D6080",
+        hairline: "#DDE3EC",
 
-        // Text hierarchy
-        "text-primary": "#F0F0F8",
-        "text-secondary": "#7878A0",
-        "text-muted": "#4A4A6A",
+        background: "#F5F7FA",
+        surface: "#FFFFFF",
+        "surface-elevated": "#EEF2F7",
+        "surface-hover": "#E6EBF2",
+        border: "#DDE3EC",
+        "border-subtle": "#E9EDF3",
 
-        // Brand accent (indigo-violet)
+        "text-primary": "#0B1F3A",
+        "text-secondary": "#4D6080",
+        "text-muted": "#5E6F8A",
+
         accent: {
-          DEFAULT: "#6366F1",
-          light: "#818CF8",
-          dark: "#4F46E5",
-          muted: "#6366F120",
+          DEFAULT: "#1B3A6B",
+          light: "#2D5290",
+          dark: "#12294F",
+          muted: "#1B3A6B1A",
         },
 
-        // Semantic colors
-        success: { DEFAULT: "#10B981", muted: "#10B98120" },
-        warning: { DEFAULT: "#F59E0B", muted: "#F59E0B20" },
-        error: { DEFAULT: "#EF4444", muted: "#EF444420" },
-        info: { DEFAULT: "#3B82F6", muted: "#3B82F620" },
+        success: { DEFAULT: "#067647", muted: "#0676471A" },
+        warning: { DEFAULT: "#B54708", muted: "#B547081A" },
+        error: { DEFAULT: "#B42318", muted: "#B423181A" },
+        info: { DEFAULT: "#175CD3", muted: "#175CD31A" },
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(99, 102, 241, 0.15)',
-        'glow-lg': '0 0 40px rgba(99, 102, 241, 0.2)',
-        'card': '0 2px 8px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 255, 255, 0.05)',
-        'panel': '0 4px 24px rgba(0, 0, 0, 0.4)',
+        'float': '0 8px 32px rgba(11, 31, 58, 0.12)',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(ellipse at center, var(--tw-gradient-stops))',
-        'gradient-brand': 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%)',
-        'gradient-surface': 'linear-gradient(180deg, #0E0E18 0%, #06060C 100%)',
-        'glass': 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
       },
       borderRadius: {
+        control: '8px',
+        panel: '14px',
+        sheet: '18px',
         '2xl': '1rem',
         '3xl': '1.5rem',
       },
@@ -63,7 +64,6 @@ const config: Config = {
         'slide-down': 'slideDown 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'shimmer': 'shimmer 2s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -85,10 +85,6 @@ const config: Config = {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
-        },
-        pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 8px rgba(99, 102, 241, 0.2)' },
-          '50%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' },
         },
       },
     },

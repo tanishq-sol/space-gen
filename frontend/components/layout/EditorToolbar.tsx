@@ -109,9 +109,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title="Select & Transform Tool (V)"
           onClick={() => selectTool('select')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
             activeTool === 'select' && !activePascalTool
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -126,9 +126,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
             aria-label={label}
             aria-pressed={activePascalTool === tool}
             onClick={() => armArchitecturalTool(activePascalTool === tool ? null : tool)}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition ${
               activePascalTool === tool
-                ? 'bg-accent text-white shadow-md shadow-accent/25'
+                ? 'bg-accent text-white'
                 : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -139,9 +139,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title="Zone Definition Tool (Z)"
           onClick={() => selectTool('zone')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
             activeTool === 'zone'
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -152,9 +152,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title="Furniture & Door/Window Placement (I)"
           onClick={() => selectTool('item')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
             activeTool === 'item'
-              ? 'bg-accent text-white shadow-md shadow-accent/25'
+              ? 'bg-accent text-white'
               : 'hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -170,10 +170,10 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title="Splat Bounding-Box Erasure Crop Tool (SuperSplat)"
           onClick={() => selectTool('splat-crop')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
             activeTool === 'splat-crop'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-amber-400'
+              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
+              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
           }`}
         >
           <Crop size={14} />
@@ -183,10 +183,10 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title="Splat Eraser Brush (SuperSplat)"
           onClick={() => selectTool('splat-eraser')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
             activeTool === 'splat-eraser'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-              : 'hover:bg-surface-elevated text-text-secondary hover:text-amber-400'
+              ? 'bg-amber-600 text-text-primary shadow-md shadow-amber-600/25'
+              : 'hover:bg-surface-elevated text-text-secondary hover:text-warning'
           }`}
         >
           <Eraser size={14} />
@@ -202,7 +202,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           <button
             title="Convert Scan to Editable Space (Extract Walls & Furniture)"
             onClick={onOpenConvertModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-accent/20 hover:bg-accent text-accent-light hover:text-white transition-all border border-accent/40 shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-accent/10 hover:bg-accent text-accent hover:text-white transition border border-accent/40 shadow-sm"
           >
             <Sparkles size={13} className="text-accent-light" />
             <span>Convert Scan</span>
@@ -213,7 +213,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           <button
             title="Align scan to the floor, real-world scale, and room axes"
             onClick={onToggleScanAlignment}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
               isAligningScan
                 ? 'bg-accent text-white border-accent'
                 : 'bg-surface-elevated/60 hover:bg-surface-elevated text-text-secondary border-border'
@@ -227,9 +227,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title={`Scan Overlay: ${showScans ? 'Visible (Click to hide)' : 'Hidden (Click to show)'}`}
           onClick={() => setShowScans(!showScans)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border ${
             showScans
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/15 text-success border-success/30'
               : 'bg-surface-elevated/60 text-text-muted border-border hover:text-text-primary'
           }`}
         >
@@ -240,7 +240,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title={`Level Mode: ${levelMode} (Click to cycle)`}
           onClick={cycleLevelMode}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-elevated/60 hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all border border-border"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-elevated/60 hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition border border-border"
         >
           <Layers size={14} />
           <span className="capitalize">{levelMode}</span>
@@ -249,9 +249,9 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
         <button
           title={`Wall Cutaway / X-Ray: ${wallMode === 'cutaway' ? 'Active' : 'Off'}`}
           onClick={toggleWallCutaway}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border ${
             wallMode === 'cutaway'
-              ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
+              ? 'bg-accent/10 text-accent border-accent/30'
               : 'bg-surface-elevated/60 text-text-secondary border-border hover:text-text-primary'
           }`}
         >
@@ -268,7 +268,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           title="Undo (Ctrl+Z)"
           onClick={() => undoSceneAction()}
           disabled={!canUndo}
-          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition"
         >
           <Undo2 size={15} />
         </button>
@@ -277,7 +277,7 @@ export function EditorToolbar({ activeTool, onSelectTool, onOpenConvertModal, is
           title="Redo (Ctrl+Y)"
           onClick={() => redoSceneAction()}
           disabled={!canRedo}
-          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none transition"
         >
           <Redo2 size={15} />
         </button>

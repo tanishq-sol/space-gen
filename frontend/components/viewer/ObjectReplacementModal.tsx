@@ -102,7 +102,7 @@ export function ObjectReplacementModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -136,7 +136,7 @@ export function ObjectReplacementModal() {
         <div className="flex items-center gap-2 border-b border-border px-5 py-2.5 bg-surface/50">
           <button
             onClick={() => setActiveTab('catalog')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === 'catalog'
                 ? 'bg-accent/20 text-accent border border-accent/30 shadow-sm'
                 : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -148,7 +148,7 @@ export function ObjectReplacementModal() {
 
           <button
             onClick={() => setActiveTab('upload')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === 'upload'
                 ? 'bg-accent/20 text-accent border border-accent/30 shadow-sm'
                 : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -160,7 +160,7 @@ export function ObjectReplacementModal() {
 
           <button
             onClick={() => setActiveTab('ai')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === 'ai'
                 ? 'bg-accent/20 text-accent border border-accent/30 shadow-sm'
                 : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
@@ -194,7 +194,7 @@ export function ObjectReplacementModal() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium capitalize transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium capitalize transition ${
                         selectedCategory === cat
                           ? 'bg-accent text-white shadow-sm'
                           : 'text-text-secondary hover:text-text-primary'
@@ -212,19 +212,19 @@ export function ObjectReplacementModal() {
                   <div
                     key={item.id}
                     onClick={() => handleSelectCatalogItem(item)}
-                    className="group flex flex-col p-3 rounded-xl border border-border bg-surface-elevated/60 hover:bg-surface-elevated hover:border-accent/50 cursor-pointer transition-all hover:shadow-lg"
+                    className="group flex flex-col p-3 rounded-xl border border-border bg-surface-elevated/60 hover:bg-surface-elevated hover:border-accent/50 cursor-pointer transition hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div
-                          className="h-4 w-4 rounded-full border border-white/20 shadow-sm"
+                          className="h-4 w-4 rounded-full border border-border shadow-sm"
                           style={{ backgroundColor: item.color_preview }}
                         />
                         <span className="text-xs font-semibold text-text-primary group-hover:text-accent transition-colors">
                           {item.name}
                         </span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-muted font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-muted font-medium">
                         {item.style}
                       </span>
                     </div>
@@ -233,7 +233,7 @@ export function ObjectReplacementModal() {
                       {item.description}
                     </p>
 
-                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50 text-[10px] text-text-muted">
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50 text-[11px] text-text-muted">
                       <span>
                         {item.dimensions.width_m}m × {item.dimensions.depth_m || item.dimensions.width_m}m × {item.dimensions.height_m}m
                       </span>
@@ -270,7 +270,7 @@ export function ObjectReplacementModal() {
                 <p className="text-xs text-text-muted max-w-sm mb-4">
                   Drag and drop or browse for a custom 3D asset to swap directly into this object&apos;s position.
                 </p>
-                <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent text-white shadow-lg shadow-accent/25 hover:brightness-110 transition-all">
+                <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent text-white transition">
                   Browse Files
                 </span>
               </label>
@@ -283,10 +283,10 @@ export function ObjectReplacementModal() {
               <div className="p-4 rounded-xl bg-accent/10 border border-accent/20">
                 <div className="flex items-center gap-2 text-accent font-medium text-xs mb-1">
                   <Wand2 size={14} />
-                  <span>Gemini Spatial Copilot 3D Generator</span>
+                  <span>Generate a replacement</span>
                 </div>
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  Describe the replacement furniture piece in natural language. Copilot will synthesize and fit the 3D model into your space.
+                  Describe the replacement furniture piece in natural language. A 3D model will be generated and fitted into your space.
                 </p>
               </div>
 
@@ -315,7 +315,7 @@ export function ObjectReplacementModal() {
                       key={chip}
                       type="button"
                       onClick={() => setAiPrompt(chip)}
-                      className="px-2.5 py-1 rounded-lg text-[10px] bg-surface-elevated hover:bg-accent/20 hover:text-accent border border-border transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-[11px] bg-surface-elevated hover:bg-accent/20 hover:text-accent border border-border transition-colors"
                     >
                       {chip}
                     </button>
@@ -327,12 +327,12 @@ export function ObjectReplacementModal() {
                 type="button"
                 onClick={handleAiGenerate}
                 disabled={!aiPrompt.trim() || isGenerating}
-                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-accent to-purple-600 text-white shadow-lg shadow-accent/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
+                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-accent hover:bg-accent-dark text-white disabled:opacity-50 transition flex items-center justify-center gap-2 mt-2"
               >
                 {isGenerating ? (
                   <>
                     <Sparkles size={14} className="animate-spin" />
-                    <span>Synthesizing 3D Model...</span>
+                    <span>Synthesizing 3D model…</span>
                   </>
                 ) : (
                   <>

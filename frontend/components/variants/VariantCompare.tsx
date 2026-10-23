@@ -75,7 +75,7 @@ function Pane({ scan, sharedRef, label, layers }: { scan: ScanAsset; sharedRef: 
   // The splat follows the first layer's camera; all layers are synced to it anyway.
   const splatRef = useRef<SplatCameraState | null>(null);
   return (
-    <div className="relative h-full min-h-0 flex-1 overflow-hidden bg-black/40" data-testid="compare-pane">
+    <div className="relative h-full min-h-0 flex-1 overflow-hidden bg-surface-elevated" data-testid="compare-pane">
       <SplatBackgroundCanvas cameraStateRef={splatRef} scanUrl={scan.url || null} scanToScene={scan.scanToScene} maskRegions={NO_MASKS} />
       {layers.map((l) => <PaneLayer key={l.id} {...l} sharedRef={sharedRef} splatRef={splatRef} />)}
       {label && <span className="absolute left-2 top-2 rounded bg-surface/90 px-2 py-0.5 text-xs">{label}</span>}

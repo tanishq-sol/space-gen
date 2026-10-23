@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { Undo, Redo, Share2, Download, Play, Video, Zap, ChevronDown, Box } from 'lucide-react'
+import { Undo, Redo, Share2, Download, Play, Video, ChevronDown, Box } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { VideoCaptureModal } from '@/components/capture/VideoCaptureModal'
@@ -43,17 +43,10 @@ export function EditorLayout({ children, onShare }: { children: React.ReactNode;
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 border-b border-border bg-surface/90 backdrop-blur-xl px-4 flex items-center justify-between shrink-0 z-20">
+      <header className="h-14 border-b border-border bg-surface px-4 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-brand flex items-center justify-center shadow-glow">
-              <Zap size={14} className="text-white" />
-            </div>
-            <span className="font-bold text-base tracking-tight text-text-primary">
-              Space<span className="text-gradient">Gen</span>
-            </span>
-          </div>
+          <span className="text-base font-semibold tracking-tight text-text-primary">Ellips</span>
 
           <div className="h-5 w-px bg-border" />
           
@@ -68,7 +61,7 @@ export function EditorLayout({ children, onShare }: { children: React.ReactNode;
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setCaptureOpen(true)} 
-            className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-all hover:bg-accent/20 hover:border-accent/50"
+            className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/20 hover:border-accent/50"
           >
             <Box size={13} />
             Import / Scenes
@@ -124,17 +117,17 @@ export function EditorLayout({ children, onShare }: { children: React.ReactNode;
       </main>
 
       {/* Bottom Status Bar */}
-      <footer className="h-7 border-t border-border bg-surface/60 backdrop-blur-sm px-4 flex items-center justify-between shrink-0 text-[11px] text-text-muted">
+      <footer className="h-7 border-t border-border bg-surface px-4 flex items-center justify-between shrink-0 text-[11px] text-text-muted">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+            <div className="w-1.5 h-1.5 rounded-full bg-success" />
             Connected
           </span>
           <span>Objects: <b className="text-text-secondary">{scene?.objects?.length || 0}</b></span>
           {scene?.style && <span>Style: <b className="text-text-secondary">{scene.style}</b></span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px]">SpaceGen AI v1.0</span>
+          <span className="text-[11px]">Ellips v1.0</span>
         </div>
       </footer>
 

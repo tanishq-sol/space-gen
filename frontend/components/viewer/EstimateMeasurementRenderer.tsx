@@ -36,7 +36,7 @@ export function MeasurementLine({ a, b, draft = false }: { a: Vec3; b: Vec3; dra
       <Html center position={mid} style={{ pointerEvents: 'none' }} zIndexRange={[30, 0]}>
         <div
           data-testid={draft ? 'measurement-draft-label' : 'measurement-label'}
-          className="whitespace-nowrap rounded bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white"
+          className="whitespace-nowrap rounded bg-surface-elevated px-1.5 py-0.5 text-xs font-semibold text-text-primary"
           style={{ border: `1px solid ${color}` }}
         >
           {formatMeasurement(length, scaleSource)}

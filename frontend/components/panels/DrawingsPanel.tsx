@@ -71,7 +71,7 @@ export function DrawingsPanel({ projectName, onClose }: { projectName: string; o
           <button onClick={onClose} className="rounded bg-accent px-3 py-1 text-white">Close</button>
         </div>
       </div>
-      <div className="flex-1 overflow-auto bg-neutral-500/30 p-6">
+      <div className="flex-1 overflow-auto bg-surface-elevated p-6">
         {svg ? (
           // Generated locally from scene data; every node-supplied string is XML-escaped in lib/drawings/svg.ts.
           <div data-testid="drawing-sheet" className="drawing-sheet mx-auto w-fit bg-white shadow-lg" dangerouslySetInnerHTML={{ __html: svg }} />

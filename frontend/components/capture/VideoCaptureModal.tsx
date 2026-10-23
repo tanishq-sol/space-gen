@@ -211,7 +211,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
   const currentStep = job ? Math.min(steps.length - 1, Math.max(0, Math.floor((job.progress / 100) * steps.length))) : 0
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-md">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -222,11 +222,11 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
         <div className="border-b border-border bg-surface-elevated/40 px-6 pt-4 pb-0">
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center shadow-glow">
-                <Box size={16} className="text-white" />
+              <div className="w-8 h-8 rounded-lg bg-surface-elevated flex items-center justify-center">
+                <Box size={16} className="text-text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-base tracking-tight text-text-primary">3D Space Ingestion</h2>
+                <h2 className="font-semibold text-base tracking-tight text-text-primary">Bring in a space</h2>
                 <p className="text-[11px] text-text-muted">Reconstruct from video or import existing 3D models</p>
               </div>
             </div>
@@ -243,7 +243,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-2 -mb-px">
               <button
                 onClick={() => setActiveTab('video')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'video'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -254,7 +254,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={() => setActiveTab('import_model')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'import_model'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -265,7 +265,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={() => setActiveTab('library')}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium border-b-2 transition ${
                   activeTab === 'library'
                     ? 'border-accent text-accent'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -290,14 +290,14 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                   {/* Speed toggle pills */}
                   <div className="mb-4 flex items-center justify-between p-2 rounded-xl bg-surface-elevated/40 border border-border">
                     <span className="text-xs font-medium text-text-secondary pl-2 flex items-center gap-1.5">
-                      <Zap size={13} className="text-amber-400" />
+                      <Zap size={13} className="text-warning" />
                       Pipeline Speed:
                     </span>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setReconstructMode('fast')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                           reconstructMode === 'fast'
                             ? 'bg-accent text-white shadow-sm'
                             : 'text-text-muted hover:text-text-primary'
@@ -308,7 +308,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         onClick={() => setReconstructMode('quality')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                           reconstructMode === 'quality'
                             ? 'bg-accent text-white shadow-sm'
                             : 'text-text-muted hover:text-text-primary'
@@ -326,7 +326,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     onDragOver={(e) => { e.preventDefault(); setVideoDragging(true) }}
                     onDragLeave={() => setVideoDragging(false)}
                     onDrop={(e) => { e.preventDefault(); setVideoDragging(false); chooseVideo(e.dataTransfer.files[0]) }}
-                    className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition-all ${
+                    className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition ${
                       videoDragging ? 'border-accent bg-accent/10' : 'border-border hover:border-accent/60 hover:bg-surface-elevated/40'
                     }`}
                   >
@@ -345,7 +345,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       onClick={loadDemoVideo}
-                      className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-all"
+                      className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition"
                     >
                       <Sparkles size={13} />
                       Load verified sample video (Living Room Scan · 5.6 MB)
@@ -354,7 +354,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                   </div>
 
                   {videoError && (
-                    <p className="mt-3 flex items-center gap-2 text-xs text-red-400">
+                    <p className="mt-3 flex items-center gap-2 text-xs text-error">
                       <AlertCircle size={14} />{videoError}
                     </p>
                   )}
@@ -367,7 +367,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     <button
                       onClick={startReconstruction}
                       disabled={!file}
-                      className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Cpu size={15} /> Start reconstruction
                     </button>
@@ -378,15 +378,15 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                 <>
                   <div className="mb-6 flex items-center justify-between">
                     <div>
-                      <p className="text-xs uppercase tracking-wider text-accent font-semibold">Job {job.job_id}</p>
+                      <p className="text-xs text-accent font-semibold">Job {job.job_id}</p>
                       <h3 className="mt-1 text-lg font-semibold text-text-primary">{job.step}</h3>
                     </div>
-                    <span className="font-mono text-2xl font-bold text-text-primary">{job.progress}%</span>
+                    <span className="text-2xl font-bold text-text-primary">{job.progress}%</span>
                   </div>
 
                   <div className="mb-6 h-2 overflow-hidden rounded-full bg-surface-elevated">
                     <div
-                      className="h-full rounded-full bg-accent transition-all duration-500"
+                      className="h-full rounded-full bg-accent transition duration-500"
                       style={{ width: `${job.progress}%` }}
                     />
                   </div>
@@ -396,7 +396,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <div key={step} className="flex items-center gap-3 text-sm">
                         <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                           index < currentStep || job.status === 'completed'
-                            ? 'bg-emerald-500/15 text-emerald-400'
+                            ? 'bg-emerald-500/15 text-success'
                             : index === currentStep
                             ? 'bg-accent/15 text-accent'
                             : 'bg-surface-elevated text-text-muted'
@@ -416,7 +416,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     ))}
                   </div>
 
-                  <div className="mt-6 rounded-lg border border-border bg-black/30 p-3 font-mono text-[11px] text-text-muted">
+                  <div className="mt-6 rounded-lg border border-border bg-surface-elevated p-3 font-mono text-[11px] text-text-muted">
                     {job.log || 'Preparing reconstruction worker…'}
                   </div>
 
@@ -427,7 +427,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                           setSplatUrl(api.getReconstructionModelUrl(job.job_id))
                           onClose()
                         }}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 shadow-lg shadow-emerald-900/30"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
                       >
                         <Sparkles size={16} /> View 3D Splat in Scene
                       </button>
@@ -439,7 +439,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
 
                   {job.status === 'failed' && (
                     <div className="mt-4 flex items-center justify-between">
-                      <p className="text-xs text-red-400">Reconstruction halted. Check backend logs.</p>
+                      <p className="text-xs text-error">Reconstruction halted. Check backend logs.</p>
                       <button onClick={onClose} className="rounded-lg border border-border px-4 py-1.5 text-xs hover:bg-surface-elevated">
                         Close
                       </button>
@@ -477,7 +477,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                 onDragOver={(e) => { e.preventDefault(); setModelDragging(true) }}
                 onDragLeave={() => setModelDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setModelDragging(false); chooseModel(e.dataTransfer.files[0]) }}
-                className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 transition-all ${
+                className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 transition ${
                   modelDragging ? 'border-accent bg-accent/10' : 'border-border hover:border-accent/60 hover:bg-surface-elevated/40'
                 }`}
               >
@@ -489,7 +489,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                   Supports .ply, .spz (compressed splat), .splat, .ksplat, .sog, .glb, and .obj
                 </span>
                 {modelFile && (
-                  <span className="mt-2 text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">
+                  <span className="mt-2 text-xs text-accent bg-accent/10 px-2 py-0.5 rounded">
                     Size: {(modelFile.size / (1024 * 1024)).toFixed(1)} MB
                   </span>
                 )}
@@ -508,13 +508,13 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                   loadScanUrl('/Hurstville_Museum_Gallery.sog')
                   onClose()
                 }}
-                className="mt-3 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                className="mt-3 w-full rounded-lg border border-success/30 bg-success-muted px-3 py-2 text-xs font-medium text-success transition-colors hover:bg-success-muted"
               >
                 Load verified sample room scan
               </button>
 
               {modelError && (
-                <p className="mt-3 flex items-center gap-2 text-xs text-red-400">
+                <p className="mt-3 flex items-center gap-2 text-xs text-error">
                   <AlertCircle size={14} />{modelError}
                 </p>
               )}
@@ -529,7 +529,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={handleInstantPreview}
                     disabled={!modelFile}
-                    className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40 transition-all"
+                    className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40 transition"
                   >
                     <Zap size={14} /> Instant Preview (0s)
                   </button>
@@ -537,7 +537,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={handleUploadAndSave}
                     disabled={!modelFile || isUploadingModel}
-                    className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-all"
+                    className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-40 transition"
                   >
                     {isUploadingModel ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                     Upload & Save
@@ -573,7 +573,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                       <div
                         key={m.job_id}
                         onClick={() => handleSelectExistingModel(m)}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border cursor-pointer transition ${
                           isCurrent
                             ? 'border-accent bg-accent/10 ring-1 ring-accent'
                             : 'border-border bg-surface-elevated/40 hover:border-accent/50 hover:bg-surface-elevated'
@@ -583,14 +583,14 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
                           <span className="font-mono text-xs font-semibold text-text-primary">
                             {m.job_id}
                           </span>
-                          <span className="text-[10px] font-mono uppercase bg-black/40 px-1.5 py-0.5 rounded text-accent border border-accent/20">
+                          <span className="text-[11px] bg-surface-elevated px-1.5 py-0.5 rounded text-accent border border-accent/20">
                             {m.format}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-text-muted">
                           <span>Size: <b className="text-text-secondary">{m.size_mb} MB</b></span>
                           {isCurrent && (
-                            <span className="text-emerald-400 font-medium flex items-center gap-1 text-[10px]">
+                            <span className="text-success font-medium flex items-center gap-1 text-[11px]">
                               <CheckCircle2 size={11} /> Active
                             </span>
                           )}

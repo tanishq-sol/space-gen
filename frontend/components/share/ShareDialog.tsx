@@ -57,7 +57,7 @@ export function ShareDialog({ projectId, viewpoints, onClose, onAddViewpoint, on
   };
 
   return (
-    <div role="dialog" aria-label="Share" aria-modal="true" className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 pt-20">
+    <div role="dialog" aria-label="Share" aria-modal="true" className="fixed inset-0 z-[60] flex items-start justify-center bg-ink/40 pt-20">
       <div className="max-h-[80vh] w-[560px] overflow-y-auto rounded-lg border border-border bg-surface p-5 text-sm shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">Share with your client</h2>

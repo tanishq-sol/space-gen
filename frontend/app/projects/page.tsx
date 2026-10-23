@@ -16,9 +16,9 @@ export default function ProjectsPage() {
     try { const doc = await createProject(name.trim()); window.location.assign(`/editor/${doc.manifest.id}`); }
     catch (e) { setError((e as Error).message); setBusy(false); }
   }
-  return <main className="min-h-screen bg-background text-foreground p-8">
+  return <main className="min-h-screen bg-background text-text-primary p-8">
     <div className="mx-auto max-w-4xl">
-      <header className="mb-8 flex items-end justify-between"><div><p className="text-sm text-text-muted">SpaceGen</p><h1 className="text-3xl font-semibold">Your spaces</h1></div></header>
+      <header className="mb-8 flex items-end justify-between"><div><p className="text-sm text-text-secondary">Ellips</p><h1 className="font-display text-[28px] font-semibold leading-tight tracking-tight">Your spaces</h1></div></header>
       <section className="mb-8 rounded-xl border border-border bg-surface p-5"><h2 className="mb-3 font-medium">Start a project</h2><div className="flex gap-3"><input aria-label="Project name" className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2" value={name} onChange={e => setName(e.target.value)} /><button className="rounded bg-accent px-4 py-2 text-white disabled:opacity-50" disabled={busy || !name.trim()} onClick={() => void create()}>{busy ? 'Creating…' : 'New project'}</button></div></section>
       {error && <p role="alert" className="mb-4 text-red-500">{error}</p>}
       <h2 className="mb-3 font-medium">Recent projects</h2>

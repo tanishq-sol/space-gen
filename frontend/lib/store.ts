@@ -99,7 +99,7 @@ export const useSpaceGenStore = create<AppState>((set, get) => ({
   scene: null,
   selectedObjectId: null,
   chatMessages: [
-    { role: 'assistant', content: 'Hello! I am your AI Copilot. How would you like to redesign this space?', timestamp: Date.now() }
+    { role: 'assistant', content: 'What would you like to change in this room?', timestamp: Date.now() }
   ],
   isLoading: false,
   heroImage: null,
