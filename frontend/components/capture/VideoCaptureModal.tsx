@@ -19,7 +19,9 @@ import {
 import { api } from '@/lib/api'
 import { ReconstructionJob } from '@/lib/types'
 import { useAppStore } from '@/lib/store'
-import { upsertScanNode } from '@/lib/pascal/scanNodes'
+import { setScanAlignment, upsertScanNode } from '@/lib/pascal/scanNodes'
+import { decodeSplatPoints } from '@/lib/scan/splatImport'
+import { autoLevelFromPoints } from '@/lib/scan/autoLevel'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type ModalTab = 'video' | 'import_model' | 'library'
@@ -40,13 +42,25 @@ const steps = ['Upload video', 'Extract keyframes', 'Estimate camera poses', 'Tr
 export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<ModalTab>('video')
   const { splatUrl, setSplatUrl, setLocalSplatData, setActiveJobId } = useAppStore()
-  const loadScanUrl = useCallback((url: string, meshUrl?: string) => {
+  const loadScanUrl = useCallback((url: string, meshUrl?: string, file?: File) => {
     setSplatUrl(url)
-    upsertScanNode(url, meshUrl ? { meshUrl } : undefined)
+    const scanId = upsertScanNode(url, meshUrl ? { meshUrl } : undefined)
+    // These paths skip the room-structure service, so level the scan here: raw COLMAP/3DGS output is Y-down.
+    void (async () => {
+      try {
+        const blob = file ?? await (await fetch(url)).blob()
+        const name = file?.name ?? url.split(/[?#]/)[0].split('/').pop() ?? 'scan.sog'
+        const { positions, opacity } = await decodeSplatPoints(blob, name, 200_000)
+        const matrix = autoLevelFromPoints(positions, opacity)
+        if (matrix) setScanAlignment(scanId, matrix)
+      } catch (error) {
+        console.warn('[ScanImport] Auto-level skipped:', error)
+      }
+    })()
   }, [setSplatUrl])
   const loadLocalScan = (file: File) => {
     if (/\.(sog|spz|ply|splat|ksplat)$/i.test(file.name)) {
-      loadScanUrl(URL.createObjectURL(file))
+      loadScanUrl(URL.createObjectURL(file), undefined, file)
     }
   }
 

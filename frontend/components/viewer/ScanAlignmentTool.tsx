@@ -125,6 +125,14 @@ export function ScanAlignmentTool({
     setLastAction(`Rotated scan ${angleDegrees > 0 ? '+' : ''}${angleDegrees}° about Y.`);
   };
 
+  // 180° about X: the floor pick always levels normal-up, so it cannot right an upside-down scan.
+  const flipUpsideDown = () => {
+    if (!scanId) return;
+    const flip: Matrix4 = [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1];
+    setScanAlignment(scanId, multiplyMatrix4(flip, scanToScene));
+    setLastAction('Flipped scan upside down.');
+  };
+
   const addPoint = (scenePoint: Vector3) => {
     if (!scanId) return;
     const scanPoint = scanPointFromScenePoint(scenePoint);
@@ -280,6 +288,13 @@ export function ScanAlignmentTool({
               >
                 <RotateCcw size={12} />
                 -90° Y
+              </button>
+              <button
+                type="button"
+                onClick={flipUpsideDown}
+                className="flex-1 flex items-center justify-center gap-1 py-1 rounded bg-surface-elevated hover:bg-surface-elevated/80 text-xs font-medium text-text-secondary hover:text-text-primary border border-border"
+              >
+                Flip
               </button>
             </div>
           </div>
