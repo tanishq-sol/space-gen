@@ -36,6 +36,7 @@ def run_pipeline(
     target_triangles: int = 20_000,
     view_size: tuple = (320, 240),
     progress: Optional[Callable[[int, str], None]] = None,
+    min_object_size: float = 0.2,
 ) -> dict:
     """`splat` must already be in the scene frame (apply splat.transform(scanToScene) first)."""
     report = progress or (lambda p, s: None)
@@ -57,6 +58,9 @@ def run_pipeline(
 
     objects = []
     for j, inst in enumerate(seg.instances):
+        # Furniture is never under ~20 cm on its longest side; smaller clusters were noise on the first real scan.
+        if max(inst.obb["size"]) < min_object_size:
+            continue
         mesh = finalize(tsdf_mesh(splat.subset(inst.indices), inst.obb, renderer), inst.obb["yaw"], target_triangles)
         export_glb(mesh, out_dir / f"{inst.id}.glb")
         inst.indices.astype("<u4").tofile(out_dir / f"{inst.id}.idx.u32")
