@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { useScene } from '@pascal-app/core';
+import { deleteNodeWithMasks } from '@/lib/splat/splatMasking';
 import { useViewer } from '@pascal-app/viewer';
 import { useSpaceGenStore } from '@/lib/store';
 import {
@@ -115,7 +116,7 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
 
   const handleDeleteNode = () => {
     if (!activeId) return;
-    useScene.getState().deleteNode(asNodeId(activeId));
+    deleteNodeWithMasks(activeId);
     setSelection({ selectedIds: [] });
     setSelectedObjectId(null);
   };

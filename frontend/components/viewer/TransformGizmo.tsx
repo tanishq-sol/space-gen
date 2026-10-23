@@ -5,6 +5,7 @@ import { TransformControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { sceneRegistry, useScene } from '@pascal-app/core'
 import { useSpaceGenStore } from '@/lib/store'
+import { deleteNodeWithMasks } from '@/lib/splat/splatMasking'
 import { asNodeId, updateNodeData } from '@/lib/pascal/nodes'
 
 type TransformControlsImpl = React.ComponentRef<typeof TransformControls>
@@ -44,7 +45,7 @@ export function TransformGizmo() {
       else if (key === 'escape') { e.preventDefault(); setSelectedObjectId(null) }
       else if (key === 'delete' || key === 'backspace') {
         e.preventDefault()
-        useScene.getState().deleteNode(asNodeId(selectedObjectId))
+        deleteNodeWithMasks(selectedObjectId)
         setSelectedObjectId(null)
       }
     }

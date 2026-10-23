@@ -212,3 +212,22 @@ export function removeMaskRegion(
   const nextMasks = (scanMetadata(scan).maskRegions || []).filter((m) => m.id !== maskRegionId);
   useScene.getState().applyNodeChanges({ update: [maskRegionsUpdate(scan, nextMasks)] });
 }
+
+/**
+ * Shared delete path for scene nodes. Deleting an item also drops the mask regions that belong to it
+ * (and with them the splat hole and the mask wireframe), in one Pascal temporal step so undo restores both.
+ */
+export function deleteNodeWithMasks(nodeId: string): void {
+  const scene = useScene.getState();
+  const node = scene.nodes[asNodeId(nodeId)];
+  if (!node) return;
+  const linkedMaskId = (node as { metadata?: { maskRegionId?: string } }).metadata?.maskRegionId;
+  const update = [];
+  for (const scan of Object.values(scene.nodes)) {
+    if (scan?.type !== 'scan') continue;
+    const masks: MaskRegion[] = scanMetadata(scan as ScanNode).maskRegions || [];
+    const next = masks.filter((m) => m.itemId !== nodeId && m.id !== linkedMaskId);
+    if (next.length !== masks.length) update.push(maskRegionsUpdate(scan as ScanNode, next));
+  }
+  scene.applyNodeChanges({ delete: [asNodeId(nodeId)], ...(update.length ? { update } : {}) });
+}

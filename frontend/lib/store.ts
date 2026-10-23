@@ -1,8 +1,9 @@
 import { create } from 'zustand'
+import { deleteNodeWithMasks } from './splat/splatMasking'
 import { useScene } from '@pascal-app/core'
 import { SceneGraph, ChatMessage, ObjectTransform, FurnitureItem, MeshManifest } from './types'
 import { SplatExclusionBox, applySceneActions } from './pascal/sceneBridge'
-import { asNode, asNodeId, nodeRecord, updateNodeData } from './pascal/nodes'
+import { asNode, nodeRecord, updateNodeData } from './pascal/nodes'
 import type { CandidatePlacement } from './placement'
 
 export interface AppState {
@@ -329,7 +330,7 @@ export const useSpaceGenStore = create<AppState>((set, get) => ({
     if (typeof window !== 'undefined') {
       try {
         if (nodeRecord()[id]) {
-          useScene.getState().deleteNode(asNodeId(id));
+          deleteNodeWithMasks(id);
         }
       } catch (e) {
         console.warn('[store] Could not delete Pascal node:', e);
