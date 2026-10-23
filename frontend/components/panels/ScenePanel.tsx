@@ -35,7 +35,7 @@ import {
   removeMaskRegion,
 } from '@/lib/splat/splatMasking';
 import type { AssetRef, MaskRegion } from '@/lib/contracts';
-import { uploadProjectAsset, uploadedAssetRef } from '@/lib/projects/api';
+import { createProject, uploadProjectAsset, uploadedAssetRef } from '@/lib/projects/api';
 
 /** The node fields this panel reads; Pascal nodes are a union, so all are optional here. */
 interface PanelNode {
@@ -68,6 +68,8 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
   const [catalog, setCatalog] = useState<FurnitureItem[]>([]);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [assetError, setAssetError] = useState<string | null>(null);
+  // Unsaved sessions get a project on the first GLB upload so the asset is stored server-side; the in-memory scene is kept.
+  const sessionProjectId = useRef<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const activeId = selectedIds[0] || selectedObjectId || null;
@@ -157,10 +159,6 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
   const uploadGlb = async (file?: File) => {
     if (!file) return;
     setAssetError(null);
-    if (!projectId) {
-      setAssetError('Open a saved project to upload GLB assets.');
-      return;
-    }
     try {
       const url = URL.createObjectURL(file);
       const gltf = await new GLTFLoader().loadAsync(url);
@@ -182,7 +180,8 @@ export function ScenePanel({ projectId, onAssetUploaded }: ScenePanelProps = {})
       URL.revokeObjectURL(url);
       const name = file.name.replace(/\.glb$/i, '');
       // Persist the normalized GLB server-side; a blob: URL would not survive a reload.
-      const uploaded = await uploadProjectAsset(projectId, normalizedBlob, `${name}.glb`);
+      sessionProjectId.current ??= projectId ?? (await createProject('Untitled room')).manifest.id;
+      const uploaded = await uploadProjectAsset(sessionProjectId.current as string, normalizedBlob, `${name}.glb`);
       const assetRef = uploadedAssetRef(uploaded, name, measured.dimensions);
       onAssetUploaded?.(assetRef);
       commitAsset({ id: assetRef.id, name, category: 'custom', src: uploaded.url, dimensions: measured.dimensions, source: 'mine' });
