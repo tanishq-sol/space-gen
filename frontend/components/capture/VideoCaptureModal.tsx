@@ -42,10 +42,11 @@ const steps = ['Upload video', 'Extract keyframes', 'Estimate camera poses', 'Tr
 export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<ModalTab>('video')
   const { splatUrl, setSplatUrl, setLocalSplatData, setActiveJobId } = useAppStore()
-  const loadScanUrl = useCallback((url: string, meshUrl?: string, file?: File) => {
+  const loadScanUrl = useCallback((url: string, meshUrl?: string, file?: File, autoLevel = true) => {
     setSplatUrl(url)
     const scanId = upsertScanNode(url, meshUrl ? { meshUrl } : undefined)
     // These paths skip the room-structure service, so level the scan here: raw COLMAP/3DGS output is Y-down.
+    if (!autoLevel) return
     void (async () => {
       try {
         const blob = file ?? await (await fetch(url)).blob()
@@ -519,7 +520,7 @@ export function VideoCaptureModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  loadScanUrl('/Hurstville_Museum_Gallery.sog')
+                  loadScanUrl('/Hurstville_Museum_Gallery.sog', undefined, undefined, false) // already in the scene frame
                   onClose()
                 }}
                 className="mt-3 w-full rounded-lg border border-success/30 bg-success-muted px-3 py-2 text-xs font-medium text-success transition-colors hover:bg-success-muted"
