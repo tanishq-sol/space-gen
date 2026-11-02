@@ -90,6 +90,127 @@ def _match(a: np.ndarray, b: np.ndarray, model) -> tuple[object, float] | None:
     return best
 
 
+# Outline regularisation. A wall line is a scan2bim wall (its face on the room side) or a
+# legacy edge well covered by wall points: confidence >= LINE_CONF and at least
+# LINE_MIN_AXIS m long when within AXIS_TOL_DEG of the room's axes, LINE_MIN_OTHER m
+# otherwise (shorter slanted edges are corners cut by furniture hiding the floor).
+LINE_CONF = 0.9
+LINE_MIN_AXIS = 1.0
+LINE_MIN_OTHER = 1.5
+AXIS_TOL_DEG = 10.0
+# the regular outline keeps at least this share of the floor outline, and adds at most this
+# share behind furniture (a sofa or cabinets along the walls)
+OUTLINE_MIN_KEPT = 0.95
+OUTLINE_MAX_ADDED = 0.30
+INFERRED_CONFIDENCE = 0.3  # wall stretch behind furniture, with no legacy edge on it
+
+
+def _lines(interp: RoomInterpretation, model) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Wall lines as (point, unit direction) in scene (x, z)."""
+    outline = np.asarray(interp.outline, dtype=np.float64)
+    centre = outline.mean(axis=0)
+    lines: list[tuple[np.ndarray, np.ndarray]] = []
+    for w in model.walls:
+        u = np.array([w.unit[0], -w.unit[1]])  # scan2bim (X, Y) -> scene (x, z = -Y)
+        v = np.array([w.perp[0], -w.perp[1]])
+        face = min(w.plane_offsets(), key=lambda o: abs(o - float(centre @ u)))  # the room side
+        lines.append((face * u + (w.r0 + w.r1) / 2 * v, v))
+    for wall in interp.walls:
+        a, b = np.array([wall.start[0], wall.start[2]]), np.array([wall.end[0], wall.end[2]])
+        length = float(np.linalg.norm(b - a))
+        if length < LINE_MIN_AXIS or wall.confidence < LINE_CONF:
+            continue
+        d = (b - a) / length
+        off_axis = abs(((np.degrees(np.arctan2(d[1], d[0])) + 45.0) % 90.0) - 45.0)
+        if off_axis > AXIS_TOL_DEG and length < LINE_MIN_OTHER:
+            continue
+        n = np.array([-d[1], d[0]])
+        # the same wall as a scan2bim line: the measured face wins
+        if any(abs(float(dd @ d)) > np.cos(np.radians(3.0)) and abs(float((p - a) @ n)) < 0.1 for p, dd in lines):
+            continue
+        lines.append((a, d))
+    return lines
+
+
+def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpretation, dict]:
+    """The outline rebuilt from wall lines: the plan is cut along every wall line and the
+    cells lying mostly inside the floor outline are kept. A bite the outline takes where
+    furniture hides the floor along a wall lies in a cell that is mostly floor, so it is
+    filled; corners then sit on wall-line intersections. Kept only when it has fewer
+    corners, keeps OUTLINE_MIN_KEPT of the floor outline and adds at most OUTLINE_MAX_ADDED.
+    One wall per edge (the
+    editor's contract); legacy openings move to the edge they lie on."""
+    from shapely.geometry import LineString, Polygon, box
+    from shapely.geometry.polygon import orient
+    from shapely.ops import polygonize, unary_union
+
+    old = Polygon(interp.outline).buffer(0)
+    stats: dict = {"from": len(interp.outline)}
+    lines = _lines(interp, model)
+    stats["lines"] = len(lines)
+    if len(lines) < 3 or old.is_empty or old.geom_type != "Polygon":
+        return interp, {**stats, "kept": "legacy (too few wall lines)"}
+    # where no wall line closes the room (a scan fading out), it ends at the furthest floor seen
+    frame = box(*old.bounds)
+    reach = 2.0 * float(np.hypot(frame.bounds[2] - frame.bounds[0], frame.bounds[3] - frame.bounds[1]))
+    segs = [LineString([p - reach * d, p + reach * d]).intersection(frame) for p, d in lines]
+    cells = list(polygonize(unary_union([s for s in segs if not s.is_empty] + [frame.exterior])))
+    keep = [c for c in cells if c.intersection(old).area >= 0.5 * c.area]
+    new = unary_union(keep) if keep else Polygon()
+    if new.geom_type == "MultiPolygon":
+        new = max(new.geoms, key=lambda g: g.area)
+    if new.is_empty or new.geom_type != "Polygon":
+        return interp, {**stats, "kept": "legacy (no cells)"}
+    new = orient(Polygon(new.exterior).simplify(0.02), sign=1.0)  # CCW in (x, z), as the analyzer
+    verts = np.asarray(new.exterior.coords)[:-1]
+    both = float(new.intersection(old).area)
+    kept, added = both / old.area, (new.area - both) / old.area
+    stats.update(to=len(verts), kept=round(kept, 3), added=round(added, 3))
+    if len(verts) < 3 or len(verts) >= len(interp.outline) or kept < OUTLINE_MIN_KEPT or added > OUTLINE_MAX_ADDED:
+        return interp, {**stats, "kept": "legacy"}
+
+    old_walls = [(np.array([w.start[0], w.start[2]]), np.array([w.end[0], w.end[2]]), w) for w in interp.walls]
+    walls: list[WallInterpretation] = []
+    for k in range(len(verts)):
+        a, b = verts[k], verts[(k + 1) % len(verts)]
+        length = float(np.linalg.norm(b - a))
+        d, n = (b - a) / length, np.array([-(b - a)[1], (b - a)[0]]) / length
+        # confidence: the legacy edges lying on this edge, by length; the rest inferred
+        support = 0.0
+        for p, q, w in old_walls:
+            if abs(float((q - p) @ d)) < np.cos(np.radians(10.0)) * np.linalg.norm(q - p):
+                continue
+            if max(abs(float((p - a) @ n)), abs(float((q - a) @ n))) > 0.15:
+                continue
+            s0, s1 = sorted((float((p - a) @ d), float((q - a) @ d)))
+            support += max(0.0, min(s1, length) - max(s0, 0.0)) * w.confidence
+        covered = min(support, length)
+        conf = (covered + INFERRED_CONFIDENCE * max(length - support, 0.0)) / length
+        walls.append(WallInterpretation(
+            id=f"wall_{k}", start=(float(a[0]), 0.0, float(a[1])), end=(float(b[0]), 0.0, float(b[1])),
+            height=interp.ceilingHeight, thickness=interp.walls[0].thickness,
+            confidence=float(np.clip(conf, 0.05, 1.0)), provenance="auto",
+        ))
+
+    openings: list[OpeningInterpretation] = []
+    by_id = {w.id: (p, q) for p, q, w in old_walls}
+    for o in interp.openings:
+        p, q = by_id[o.wallId]
+        centre = p + (q - p) / max(float(np.linalg.norm(q - p)), 1e-9) * o.offset
+        for k, w in enumerate(walls):
+            a, b = np.array([w.start[0], w.start[2]]), np.array([w.end[0], w.end[2]])
+            length = float(np.linalg.norm(b - a))
+            d = (b - a) / length
+            off = float((centre - a) @ d)
+            if abs(float((centre - a) @ np.array([-d[1], d[0]]))) <= 0.15 and 0.0 <= off <= length:
+                openings.append(o.model_copy(update={"wallId": w.id, "offset": off, "width": min(o.width, length)}))
+                break
+    stats["openingsDropped"] = len(interp.openings) - len(openings)
+    out = interp.model_copy(update={"outline": [(float(x), float(z)) for x, z in verts],
+                                    "walls": walls, "openings": openings})
+    return out, {**stats, "kept": "regularized"}
+
+
 def enrich_walls(interp: RoomInterpretation, model, floor: float, detect_openings: bool):
     """Keep the outline's walls (the contract: one wall per outline edge, on the room's
     inner surface); where scan2bim measured the same wall take its thickness, raise the
@@ -185,7 +306,7 @@ def analyze_room_scan2bim(
             f"scan2bim found {len(model.walls)} walls (< {MIN_WALLS}); legacy walls kept")
         return base
 
-    interp = base.interpretation
+    interp, outline_stats = regularize_outline(base.interpretation, model)
     floor = float(model.levels.floor_z)
     walls, openings, matched = enrich_walls(interp, model, floor, opts.detect_openings)
     result_interp = interp.model_copy(update={"walls": walls, "openings": openings})
@@ -193,6 +314,8 @@ def analyze_room_scan2bim(
         result_interp = merge_external_openings(result_interp, opening_detector(result_interp))
     diagnostics = dict(base.diagnostics)
     diagnostics["engine"] = "scan2bim"
+    diagnostics["outline"] = {**diagnostics.get("outline", {}), "vertices": len(interp.outline),
+                              "regularization": outline_stats}
     diagnostics["scan2bim"] = {
         "walls": len(model.walls),
         "wallsMatched": matched,

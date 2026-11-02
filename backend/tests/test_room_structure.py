@@ -289,3 +289,35 @@ def test_scan2bim_failure_falls_back_to_the_legacy_result(monkeypatch):
     assert len(result.interpretation.walls) == 4
     assert any("legacy walls kept" in n for n in result.diagnostics["notes"])
 
+
+def _room_with_a_sofa(seed: int = 7):
+    """The rectangle with a 2.4 x 0.9 m sofa against its far wall (z = 2): the floor
+    behind and under it is not scanned, so the floor outline takes a bite there."""
+    scene = make_room(polygon=RECTANGLE, openings=[DOOR], seed=seed, rotate=False)
+    p = scene.positions - scene.translation
+    under = (np.abs(p[:, 0] - 0.5) < 1.2) & (p[:, 2] > 1.1) & (p[:, 2] < 1.98) & (p[:, 1] < 0.1)
+    rng = np.random.default_rng(seed)
+    sofa = rng.uniform([-0.7, 0.0, 1.1], [1.7, 0.8, 1.98], size=(6000, 3))
+    face = rng.integers(0, 3, len(sofa))
+    lo, hi = np.array([-0.7, 0.0, 1.1]), np.array([1.7, 0.8, 1.98])
+    side = np.where(face == 1, 1, rng.integers(0, 2, len(sofa)))  # no bottom face: no floor under it
+    sofa[np.arange(len(sofa)), face] = np.where(side, hi[face], lo[face])
+    scene.positions = np.concatenate([p[~under], sofa]) + scene.translation
+    scene.opacity = np.concatenate([scene.opacity[~under], np.full(len(sofa), 0.9)])
+    return scene
+
+
+def test_outline_is_rebuilt_from_wall_lines_where_furniture_hides_the_floor():
+    scene = _room_with_a_sofa()
+    legacy = analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="legacy"))
+    assert len(legacy.interpretation.walls) > 4  # the floor outline takes a bite behind the sofa
+    result = analyze_room(scene.positions, scene.opacity)
+    interp = result.interpretation
+    assert result.diagnostics["outline"]["regularization"]["kept"] == "regularized"
+    assert len(interp.walls) == len(interp.outline) == 4
+    acc = evaluate(scene, result)
+    assert acc.walls_matched == acc.walls_expected, acc
+    assert acc.max_corner_error_cm < 10.0
+    assert acc.openings_matched == acc.openings_expected  # the door moved to the rebuilt wall
+    walls = {w.id for w in interp.walls}
+    assert all(o.wallId in walls for o in interp.openings)
