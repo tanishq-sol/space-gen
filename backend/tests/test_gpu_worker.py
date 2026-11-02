@@ -9,7 +9,7 @@ from gpu_worker.cameras import point_in_polygon, room_cameras
 from gpu_worker.client import download_artifacts, submit_job, wait_job
 from gpu_worker.mesh import export_glb, finalize, tsdf_mesh
 from gpu_worker.render import NumpyRenderer
-from gpu_worker.segment import segment, shell_prior
+from gpu_worker.segment import segment, shell_prior, without_shell
 from gpu_worker.server import create_app
 from gpu_worker.shell import bake_floor
 from gpu_worker.splat import load_ply, save_ply, transform
@@ -154,3 +154,31 @@ def test_worker_http_protocol_end_to_end(tmp_path):
         print()
         for o in result["objects"]:
             print(f"  {o['label']:6s} {o['gaussianCount']} gaussians, {o['triangles']} tris, dims {o['dimensions']}")
+
+
+def _cloud(points: np.ndarray):
+    from gpu_worker.splat import Splat
+
+    n = len(points)
+    quats = np.tile([1.0, 0.0, 0.0, 0.0], (n, 1))
+    return Splat(points, np.full((n, 3), 0.01), quats, np.ones(n), np.full((n, 3), 0.5))
+
+
+def test_objects_are_meshed_without_floor_wall_or_floaters_under_the_floor():
+    rng = np.random.default_rng(0)
+    sofa = rng.uniform([1.0, 0.1, 0.2], [2.0, 0.8, 1.0], (600, 3))  # its back 0.2 m from the wall z = 0
+    crust = rng.uniform([1.0, -0.01, 0.2], [2.0, 0.03, 1.0], (200, 3))  # floor under it
+    floaters = rng.uniform([1.0, -0.45, 0.2], [2.0, -0.35, 1.0], (50, 3))  # reflections under the floor
+    wall = rng.uniform([1.0, 0.1, -0.03], [2.0, 0.8, 0.03], (150, 3))  # wall behind it
+    splat = _cloud(np.vstack([sofa, crust, floaters, wall]))
+    kept = without_shell(splat, np.arange(len(splat.means)), INTERPRETATION_WALL_Z0)
+    assert set(kept) == set(range(600))
+
+    rug = _cloud(rng.uniform([1.0, 0.0, 1.0], [2.0, 0.02, 2.0], (300, 3)))  # lies on the floor: kept whole
+    assert len(without_shell(rug, np.arange(300), INTERPRETATION_WALL_Z0)) == 300
+
+
+INTERPRETATION_WALL_Z0 = {
+    "ceilingHeight": 2.5,
+    "walls": [{"id": "w", "start": [0.0, 0.0, 0.0], "end": [4.0, 0.0, 0.0], "height": 2.5}],
+}

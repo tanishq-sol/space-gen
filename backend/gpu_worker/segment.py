@@ -205,3 +205,23 @@ def shell_prior(splat: Splat, interpretation: dict, band: float = 0.04, weight: 
         along = d @ t
         on |= (np.abs(d @ np.array([-t[1], t[0]])) < band) & (along >= 0) & (along <= np.linalg.norm(b - a))
     return np.where(on, weight, 1.0)
+
+
+def without_shell(
+    splat: Splat, idx: np.ndarray, interpretation: dict, band: float = 0.05, keep: float = 0.3
+) -> np.ndarray:
+    """An object's Gaussians without the room shell: those within `band` of the floor or
+    below it (floor crust, floaters under the floor) and those within `band` of a wall's
+    face (wall chunks on a sofa's back). An object that would keep less than `keep` of
+    them lies on the shell (a rug, a picture on a wall) and is left whole."""
+    p = splat.means[idx]
+    shell = p[:, 1] <= band
+    xz = p[:, [0, 2]]
+    for wall in interpretation.get("walls", []):
+        a, b = np.asarray(wall["start"], float)[[0, 2]], np.asarray(wall["end"], float)[[0, 2]]
+        length = max(float(np.linalg.norm(b - a)), 1e-9)
+        t = (b - a) / length
+        d = xz - a
+        along = d @ t
+        shell |= (np.abs(d @ np.array([-t[1], t[0]])) <= band) & (along >= 0) & (along <= length)
+    return idx if (~shell).sum() < keep * len(idx) else idx[~shell]
