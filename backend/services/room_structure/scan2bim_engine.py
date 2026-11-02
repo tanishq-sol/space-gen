@@ -27,7 +27,7 @@ import numpy as np
 
 from models.contracts import OpeningInterpretation, RoomInterpretation, WallInterpretation
 
-from .analyzer import ProgressFn, RoomStructureOptions, RoomStructureResult, analyze_room
+from .analyzer import ProgressFn, RoomStructureOptions, RoomStructureResult, analyze_room, square_walls, wall_qa
 from .openings import OpeningDetector, merge_external_openings
 
 MIN_WALLS = 3
@@ -387,7 +387,8 @@ def analyze_room_scan2bim(
     interp, outline_stats = regularize_outline(base.interpretation, model)
     floor = float(model.levels.floor_z)
     walls, openings, matched = enrich_walls(interp, model, floor, opts.detect_openings)
-    result_interp = interp.model_copy(update={"walls": walls, "openings": openings})
+    walls = wall_qa(q, walls, interp.ceilingHeight)
+    result_interp = interp.model_copy(update={"walls": walls, "wallsSquare": square_walls(walls), "openings": openings})
     if opening_detector is not None:
         result_interp = merge_external_openings(result_interp, opening_detector(result_interp))
     diagnostics = dict(base.diagnostics)

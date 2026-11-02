@@ -321,3 +321,50 @@ def test_outline_is_rebuilt_from_wall_lines_where_furniture_hides_the_floor():
     assert acc.openings_matched == acc.openings_expected  # the door moved to the rebuilt wall
     walls = {w.id for w in interp.walls}
     assert all(o.wallId in walls for o in interp.openings)
+
+
+def test_every_wall_reports_its_surface_fit_and_coverage():
+    # the synthetic rectangle's surfaces carry 1 cm noise; the door takes 0.9 m out of wall 0's band
+    interp = _run("rectangle")[1].interpretation
+    assert all(0.5 < w.rmseCm < 2.0 for w in interp.walls), [w.rmseCm for w in interp.walls]
+    assert all(w.inlierRatio >= 0.75 for w in interp.walls), [w.inlierRatio for w in interp.walls]
+    assert interp.wallsSquare is not None and [w.id for w in interp.wallsSquare] == [w.id for w in interp.walls]
+
+
+def _quad(points):
+    from models.contracts import WallInterpretation
+
+    return [
+        WallInterpretation(
+            id=f"wall_{i}",
+            start=(a[0], 0.0, a[1]),
+            end=(b[0], 0.0, b[1]),
+            height=2.6,
+            thickness=0.1,
+            confidence=0.9,
+            provenance="auto",
+        )
+        for i, (a, b) in enumerate(zip(points, points[1:] + points[:1]))
+    ]
+
+
+def test_square_fit_turns_near_square_walls_and_leaves_the_rest():
+    from services.room_structure.analyzer import square_walls
+
+    lean = 4.0 * np.tan(np.radians(2.0))  # the right wall leans 2 degrees
+    walls = _quad([(-2.5, -2.0), (2.5, -2.0), (2.5 + lean, 2.0), (-2.5, 2.0)])
+    square = square_walls(walls)
+    assert square is not None and [w.id for w in square] == [w.id for w in walls]
+    for w in square:
+        d = np.subtract(w.end, w.start)[[0, 2]]
+        assert min(abs(d[0]), abs(d[1])) < 1e-9  # every wall on an axis
+    corners = np.array([w.start for w in square])[:, [0, 2]]
+    assert np.abs(corners - np.array([w.start for w in walls])[:, [0, 2]]).max() < 0.25
+
+    lean = 4.0 * np.tan(np.radians(10.0))  # 10 degrees is a slanted wall, not a crooked one
+    walls = _quad([(-2.5, -2.0), (2.5, -2.0), (2.5 + lean, 2.0), (-2.5, 2.0)])
+    right = square_walls(walls)[1]
+    assert right.end == pytest.approx(walls[1].end) and right.start == pytest.approx(walls[1].start)
+
+    lean = 20.0 * np.tan(np.radians(2.0))  # a 20 m wall: squaring moves a corner 0.35 m
+    assert square_walls(_quad([(-2.5, -10.0), (2.5, -10.0), (2.5 + lean, 10.0), (-2.5, 10.0)])) is None

@@ -670,6 +670,22 @@
           "title": "Walls",
           "type": "array"
         },
+        "wallsSquare": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WallInterpretation"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The walls (same ids) with directions within 3 degrees of 0/45/90 snapped: the Square (CAD) fit.",
+          "title": "Wallssquare"
+        },
         "openings": {
           "items": {
             "$ref": "#/$defs/OpeningInterpretation"
@@ -993,6 +1009,35 @@
           ],
           "default": null,
           "title": "Status"
+        },
+        "rmseCm": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RMS distance of the scan points on this wall from its surface, in cm.",
+          "title": "Rmsecm"
+        },
+        "inlierRatio": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share of the wall's length with scan points on its surface.",
+          "title": "Inlierratio"
         }
       },
       "required": [

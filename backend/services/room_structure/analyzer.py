@@ -425,6 +425,72 @@ def _intersect(n1: np.ndarray, c1: float, n2: np.ndarray, c2: float) -> np.ndarr
     return np.array([(c1 * n2[1] - c2 * n1[1]) / det, (n1[0] * c2 - n2[0] * c1) / det])
 
 
+# --------------------------------------------------------------------------- wall QA / square fit
+
+QA_BAND = 0.05  # m: a wall-height point this close to a wall's surface lies on it
+QA_STEP = 0.1  # m: steps along a wall for its inlier ratio
+SQUARE_TOL_DEG = 3.0  # walls this close to a multiple of 45 deg are squared
+SQUARE_MAX_SHIFT = 0.25  # m: a squared corner may move this far, else no square fit
+
+
+def wall_qa(points: np.ndarray, walls: list[WallInterpretation], height: float) -> list[WallInterpretation]:
+    """Each wall with `rmseCm`, the RMS distance from its surface of the wall-height points
+    within QA_BAND of it, and `inlierRatio`, the share of QA_STEP steps along it holding
+    two or more of them. Scene frame (Y up, floor at 0)."""
+    band = points[(points[:, 1] > 0.3) & (points[:, 1] < height - 0.25)]
+    xz = band[:, [0, 2]]
+    out = []
+    for w in walls:
+        a, b = np.array([w.start[0], w.start[2]]), np.array([w.end[0], w.end[2]])
+        length = float(np.linalg.norm(b - a))
+        if length < 2 * QA_STEP:
+            out.append(w)
+            continue
+        d = (b - a) / length
+        rel = xz - a
+        s, t = rel @ d, rel @ np.array([-d[1], d[0]])
+        on = (s > 0) & (s < length) & (np.abs(t) < QA_BAND)
+        steps = int(np.ceil(length / QA_STEP))
+        hits = np.bincount(np.minimum((s[on] / QA_STEP).astype(int), steps - 1), minlength=steps)
+        rmse = float(100 * np.sqrt(np.mean(t[on] ** 2))) if on.sum() >= 20 else None
+        out.append(w.model_copy(update={"rmseCm": rmse, "inlierRatio": float((hits >= 2).mean())}))
+    return out
+
+
+def square_walls(walls: list[WallInterpretation]) -> list[WallInterpretation] | None:
+    """The Square (CAD) fit: walls within SQUARE_TOL_DEG of a multiple of 45 deg turned to
+    it about their midpoint, corners re-intersected (same ids, one wall per outline edge).
+    None when a corner would move more than SQUARE_MAX_SHIFT or an edge would flip."""
+    ends = [(np.array([w.start[0], w.start[2]]), np.array([w.end[0], w.end[2]])) for w in walls]
+    lines = []
+    for a, b in ends:
+        d = (b - a) / max(float(np.linalg.norm(b - a)), 1e-9)
+        ang = float(np.degrees(np.arctan2(d[1], d[0])))
+        target = 45.0 * round(ang / 45.0)
+        if abs(ang - target) <= SQUARE_TOL_DEG:
+            d = np.array([np.cos(np.radians(target)), np.sin(np.radians(target))])
+        n = np.array([-d[1], d[0]])
+        lines.append((n, float(n @ ((a + b) / 2))))
+    verts = []
+    for i, (a, _) in enumerate(ends):
+        p = _intersect(*lines[i - 1], *lines[i])
+        if p is None:  # neighbours (nearly) parallel: the as-built corner, on this wall's line
+            n, c = lines[i]
+            p = a + n * (c - n @ a)
+        if np.linalg.norm(p - a) > SQUARE_MAX_SHIFT:
+            return None
+        verts.append(p)
+    out = []
+    for i, (w, (a, b)) in enumerate(zip(walls, ends)):
+        s, e = verts[i], verts[(i + 1) % len(verts)]
+        if float((e - s) @ (b - a)) <= 0:
+            return None
+        out.append(
+            w.model_copy(update={"start": (float(s[0]), 0.0, float(s[1])), "end": (float(e[0]), 0.0, float(e[1]))})
+        )
+    return out
+
+
 # --------------------------------------------------------------------------- orchestration
 
 
@@ -588,18 +654,19 @@ def _solve(
             )
         )
 
+    q_c = q.copy()
+    q_c[:, 0] -= centre[0]
+    q_c[:, 2] -= centre[1]
     openings: list[OpeningInterpretation] = []
     if opts.detect_openings:
         report("openings", 0.85)
-        q_c = q.copy()
-        q_c[:, 0] -= centre[0]
-        q_c[:, 2] -= centre[1]
         for i, wall in enumerate(walls):
             if fits[i].observed:
                 openings.extend(detect_openings(q_c, wall, i, verts_c.mean(axis=0)))
 
     floor_cov = float(raw_mask[mask > 0].mean()) if mask.any() else 0.0
     floor_conf = float(confs["floor"] * min(1.0, 0.5 + floor_cov))
+    walls = wall_qa(q_c, walls, height)
     interpretation = RoomInterpretation(
         provenance="auto",
         floor=FloorPlane(normal=(0.0, 1.0, 0.0), constant=0.0, provenance="auto", confidence=floor_conf),
@@ -607,6 +674,7 @@ def _solve(
         ceilingConfidence=float(confs["ceiling"]),
         outline=[(float(p[0]), float(p[1])) for p in verts_c],
         walls=walls,
+        wallsSquare=square_walls(walls),
         openings=openings,
         detections=[],
     )
