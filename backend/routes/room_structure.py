@@ -11,7 +11,7 @@ import json
 import threading
 from collections import OrderedDict
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Literal, Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -44,6 +44,7 @@ class AnalysisOptions(BaseModel):
     upHint: Optional[tuple[float, float, float]] = None
     seed: int = 7
     detectOpenings: bool = True
+    engine: Literal["scan2bim", "legacy"] = "scan2bim"
 
     def to_options(self) -> RoomStructureOptions:
         if self.upHint is not None and not any(self.upHint):
@@ -54,6 +55,7 @@ class AnalysisOptions(BaseModel):
             up_hint=self.upHint,
             seed=self.seed,
             detect_openings=self.detectOpenings,
+            engine=self.engine,
         )
 
 

@@ -52,6 +52,9 @@ class RoomStructureOptions:
     manhattan_tolerance_deg: float = 7.0
     manhattan_min_fraction: float = 0.85
     detect_openings: bool = True
+    # "legacy": this module alone; "scan2bim": the same outline and walls, with thickness, confidence
+    # and doors/windows checked by the vendored scan2bim pipeline (see scan2bim_engine.py)
+    engine: str = "scan2bim"
 
 
 @dataclass
@@ -451,6 +454,12 @@ def analyze_room(
     progress: ProgressFn | None = None,
 ) -> RoomStructureResult:
     opts = options or RoomStructureOptions()
+    if opts.engine == "scan2bim":
+        from .scan2bim_engine import analyze_room_scan2bim
+
+        return analyze_room_scan2bim(positions, opacity, colmap_points, opts, opening_detector, progress)
+    if opts.engine != "legacy":
+        raise RoomStructureError(f"Unknown room-structure engine '{opts.engine}'.")
     report = progress or (lambda stage, fraction: None)
 
     report("filtering", 0.05)

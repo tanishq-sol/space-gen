@@ -260,3 +260,32 @@ def test_colmap_points_loaders(tmp_path):
 def test_service_does_not_require_open3d():
     code = "import sys, services.room_structure; assert 'open3d' not in sys.modules"
     subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], check=True)
+
+
+def test_scan2bim_engine_checks_every_wall_of_a_synthetic_room():
+    scene, result, _ = _run("rectangle")
+    diag = result.diagnostics
+    assert diag["engine"] == "scan2bim"
+    assert diag["scan2bim"]["wallsMatched"] == len(result.interpretation.walls)
+
+
+def test_legacy_engine_is_still_available_and_unknown_engines_fail():
+    scene = make_room(**CASES["rectangle"])
+    legacy = analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="legacy"))
+    assert "engine" not in legacy.diagnostics and len(legacy.interpretation.walls) == 4
+    with pytest.raises(RoomStructureError):
+        analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="nope"))
+
+
+def test_scan2bim_failure_falls_back_to_the_legacy_result(monkeypatch):
+    from services.room_structure.scan2bim import pipeline
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("stage failed")
+
+    monkeypatch.setattr(pipeline, "run_pipeline", boom)
+    scene = make_room(**CASES["rectangle"])
+    result = analyze_room(scene.positions, scene.opacity)
+    assert len(result.interpretation.walls) == 4
+    assert any("legacy walls kept" in n for n in result.diagnostics["notes"])
+
