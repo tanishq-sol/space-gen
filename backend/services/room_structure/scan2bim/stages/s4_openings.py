@@ -33,8 +33,7 @@ from ..model import Face, Join, Model, Opening, Wall
 from .s3_rooms import footprint
 
 
-def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Config,
-                stats: dict) -> list[Opening]:
+def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Config, stats: dict) -> list[Opening]:
     t = np.deg2rad(f.direction)
     u = np.array([np.cos(t), np.sin(t)])
     v = np.array([-u[1], u[0]])
@@ -89,7 +88,7 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
         # frame is not a head
         heads = []
         for col in cols:
-            solid = np.flatnonzero(col[band_lo:-1] & col[band_lo + 1:])
+            solid = np.flatnonzero(col[band_lo:-1] & col[band_lo + 1 :])
             if len(solid):
                 heads.append(int(solid[0]) + band_lo)
         head = floor_z + (int(np.median(heads)) if heads else nz) * cfg.open_cell_z
@@ -99,7 +98,7 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
         # windows (radiators hide the wall under them) for 2 more UoM doors; this
         # looser reading types more openings right overall. A leaf or cabinet in a
         # doorway can still read as a sill (open item).
-        low = cols[:, floor_cells + 1:sill_hi + 1]
+        low = cols[:, floor_cells + 1 : sill_hi + 1]
         if low.size and low.any(axis=1).mean() >= 0.5:
             sills = [int(np.flatnonzero(col)[-1]) + floor_cells + 2 for col in low if col.any()]
             sill = floor_z + int(np.median(sills)) * cfg.open_cell_z
@@ -111,8 +110,11 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
             # an opening only within the gap rules' widths, and on their evidence (R14-4)
             evidence = None
             if cfg.open_pier_openings and o.width <= cfg.open_pier_max_width:
-                evidence = _span_evidence(wall, o.along0, o.along1, pts, floor_z, cfg) \
-                    if cfg.open_pier_evidence else ("lintel", None)
+                evidence = (
+                    _span_evidence(wall, o.along0, o.along1, pts, floor_z, cfg)
+                    if cfg.open_pier_evidence
+                    else ("lintel", None)
+                )
             if evidence is None:
                 stats["pier_spans_kept_as_wall"] = stats.get("pier_spans_kept_as_wall", 0) + 1
                 used[c0:c1] = True
@@ -121,9 +123,12 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
                 o.sill_z, o.head_z = floor_z + evidence[1][0], floor_z + evidence[1][1]
             elif evidence[0] == "door":
                 o.sill_z = floor_z
-        elif cfg.open_floor_through_door and o.sill_z > floor_z + cfg.door_sill_max \
-                and cfg.door_head[0] <= o.head_z - floor_z <= cfg.door_head[1] \
-                and _floor_through(wall, o.along0, o.along1, pts, floor_z, cfg):
+        elif (
+            cfg.open_floor_through_door
+            and o.sill_z > floor_z + cfg.door_sill_max
+            and cfg.door_head[0] <= o.head_z - floor_z <= cfg.door_head[1]
+            and _floor_through(wall, o.along0, o.along1, pts, floor_z, cfg)
+        ):
             # floor seen inside the wall's footprint: no wall stands under it, so what read
             # as a sill is a leaf or furniture in a doorway (round 9's door rule)
             read_sill, o.sill_z = o.sill_z, floor_z
@@ -184,8 +189,12 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
             if runs[k] is not None and _overlap(runs[k], runs[group[-1]]) >= 0.5:
                 group.append(k)
                 k += 1
-            elif k + 1 < ncol and runs[k] is None and runs[k + 1] is not None \
-                    and _overlap(runs[k + 1], runs[group[-1]]) >= 0.5:
+            elif (
+                k + 1 < ncol
+                and runs[k] is None
+                and runs[k + 1] is not None
+                and _overlap(runs[k + 1], runs[group[-1]]) >= 0.5
+            ):
                 group.append(k + 1)  # one-column mullion
                 k += 2
             else:
@@ -197,7 +206,7 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
             continue
         lo = int(np.median([runs[g][0] for g in group]))
         hi = int(np.median([runs[g][1] for g in group]))
-        cells = occl[group[0]:group[-1] + 1, lo:hi]
+        cells = occl[group[0] : group[-1] + 1, lo:hi]
         if cells.size and cells.mean() >= cfg.open_occluded_share:
             stats["rejected_occluded"] += 1
             if cfg.open_debug:
@@ -206,15 +215,26 @@ def _face_voids(f: Face, wall: Wall, pts: np.ndarray, floor_z: float, cfg: Confi
                 sel = front & (r >= a0) & (r < a1) & (z >= z0) & (z < z1)
                 behind = sel & (d * into > 0)
                 mid = (f.k * (a0 + a1) / 2 + f.c) * u + (a0 + a1) / 2 * v
-                stats.setdefault("_occluded", []).append({
-                    "wall": wall.id, "x": float(mid[0]), "y": float(mid[1]), "width": round(a1 - a0, 2),
-                    "sill": round(z0 - floor_z, 2), "head": round(z1 - floor_z, 2),
-                    "into_wall_share": round(float(behind.sum()) / max(int(sel.sum()), 1), 2),
-                    "depth_cm": round(100 * float(np.median(np.abs(d[sel]))), 1) if sel.any() else None})
+                stats.setdefault("_occluded", []).append(
+                    {
+                        "wall": wall.id,
+                        "x": float(mid[0]),
+                        "y": float(mid[1]),
+                        "width": round(a1 - a0, 2),
+                        "sill": round(z0 - floor_z, 2),
+                        "head": round(z1 - floor_z, 2),
+                        "into_wall_share": round(float(behind.sum()) / max(int(sel.sum()), 1), 2),
+                        "depth_cm": round(100 * float(np.median(np.abs(d[sel]))), 1) if sel.any() else None,
+                    }
+                )
             continue
         sill = floor_z if lo <= floor_cells else floor_z + lo * cfg.open_cell_z
-        o = Opening(along0=r0 + group[0] * cfg.open_col, along1=r0 + (group[-1] + 1) * cfg.open_col,
-                    sill_z=sill, head_z=floor_z + hi * cfg.open_cell_z)
+        o = Opening(
+            along0=r0 + group[0] * cfg.open_col,
+            along1=r0 + (group[-1] + 1) * cfg.open_col,
+            sill_z=sill,
+            head_z=floor_z + hi * cfg.open_cell_z,
+        )
         o.kind = _classify(o, floor_z, cfg)
         o.derivation = "measured" if o.kind != "unresolved" else "unresolved"
         out.append(o)
@@ -234,13 +254,16 @@ def _floor_through(w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float,
     fl = along & (np.abs(z) < cfg.side_floor_tol)
     inner = fl & (np.abs(s_) < max(half - cfg.open_gap_face_clear, 0.03))
     ci = np.clip(((r_[inner] - a) / ((b - a) / n)).astype(int), 0, n - 1)
-    return bool((np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean() >= cfg.open_gap_floor
-                and (fl & (s_ > half) & (s_ < half + 0.5)).sum() >= cfg.open_min_pts
-                and (fl & (s_ < -half) & (s_ > -half - 0.5)).sum() >= cfg.open_min_pts)
+    return bool(
+        (np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean() >= cfg.open_gap_floor
+        and (fl & (s_ > half) & (s_ < half + 0.5)).sum() >= cfg.open_min_pts
+        and (fl & (s_ < -half) & (s_ > -half - 0.5)).sum() >= cfg.open_min_pts
+    )
 
 
-def _span_evidence(w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float,
-                   cfg: Config) -> tuple[str, tuple[float, float] | None] | None:
+def _span_evidence(
+    w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float, cfg: Config
+) -> tuple[str, tuple[float, float] | None] | None:
     """A pier-anchored span's evidence (round 14), by the gap rules: "door" when floor
     returns lie in >= `open_gap_floor` of its 0.1 m cells inside the wall's footprint
     and on both sides of it (round 9), "window" when the wall or a radiator stands
@@ -258,8 +281,13 @@ def _span_evidence(w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float,
     if _floor_through(w, a, b, pts, floor_z, cfg):
         return "door", None
     for flip in _reveal_sides(w):
-        k = along & ~_in_reveal(w, s_, cfg, flip) & (np.abs(s_) < half + cfg.open_trim + cfg.open_gap_sill_reach) \
-            & (z >= cfg.open_gap_sill[0]) & (z < cfg.open_gap_sill[1])
+        k = (
+            along
+            & ~_in_reveal(w, s_, cfg, flip)
+            & (np.abs(s_) < half + cfg.open_trim + cfg.open_gap_sill_reach)
+            & (z >= cfg.open_gap_sill[0])
+            & (z < cfg.open_gap_sill[1])
+        )
         if (np.bincount(ci[k], minlength=n) >= cfg.open_min_pts).mean() < cfg.open_gap_window_share:
             continue
         ext = _window_extent(w, a, b, pts, floor_z, cfg, flip)
@@ -294,13 +322,21 @@ def _mullions(r: np.ndarray, d: np.ndarray, z: np.ndarray, o: Opening, cfg: Conf
         while j + 1 < n and hit[j + 1]:
             j += 1
         width = (j - i + 1) * step
-        left, right = h[max(i - clear, 0):i], h[j + 1:j + 1 + clear]
-        quiet = len(left) == clear and len(right) == clear and \
-            (left < cfg.open_mullion_pts).mean() >= 0.75 and (right < cfg.open_mullion_pts).mean() >= 0.75
+        left, right = h[max(i - clear, 0) : i], h[j + 1 : j + 1 + clear]
+        quiet = (
+            len(left) == clear
+            and len(right) == clear
+            and (left < cfg.open_mullion_pts).mean() >= 0.75
+            and (right < cfg.open_mullion_pts).mean() >= 0.75
+        )
         c = a + (i + j + 1) / 2 * step
         prev = cuts[-1] if cuts else a
-        if width <= cfg.open_mullion_max_width and quiet and c - prev >= cfg.open_min_width \
-                and b - c >= cfg.open_min_width:
+        if (
+            width <= cfg.open_mullion_max_width
+            and quiet
+            and c - prev >= cfg.open_min_width
+            and b - c >= cfg.open_min_width
+        ):
             cuts.append(c)
         i = j + 1
     return cuts
@@ -395,15 +431,27 @@ def bridge_door_gaps(model: Model, cfg: Config = Config()) -> dict:
 
     def note(reason, w, end, a, **kw):
         if cfg.open_debug:
-            trace.append({"wall": w.id, "end": end, "x": round(float(a[0]), 2), "y": round(float(a[1]), 2),
-                          "reason": reason, **kw})
+            trace.append(
+                {
+                    "wall": w.id,
+                    "end": end,
+                    "x": round(float(a[0]), 2),
+                    "y": round(float(a[1]), 2),
+                    "reason": reason,
+                    **kw,
+                }
+            )
 
     prints = {w.id: footprint(w) for w in model.walls}
     done: set[frozenset] = set()
     c = model.cloud
     path = None
-    if cfg.open_gap_walk and str(getattr(c, "file_station_kind", "")).startswith("trajectory") \
-            and c.stations is not None and len(c.stations) > 1:
+    if (
+        cfg.open_gap_walk
+        and str(getattr(c, "file_station_kind", "")).startswith("trajectory")
+        and c.stations is not None
+        and len(c.stations) > 1
+    ):
         path = c.stations[:, :2]
         step_ok = np.isfinite(path).all(1)
         step_ok = step_ok[:-1] & step_ok[1:] & (np.linalg.norm(path[1:] - path[:-1], axis=1) <= cfg.open_beam_walk_step)
@@ -459,8 +507,14 @@ def bridge_door_gaps(model: Model, cfg: Config = Config()) -> dict:
                 else:
                     w.r0 = lo_r
                 w.unjoined = [e for e in w.unjoined if e != end]
-                w.joins[end] = Join(other=other.id, face_offset=new_end, delta=new_end - r_end,
-                                    new_end=new_end, trimmed=-gap, partner_covers=True)
+                w.joins[end] = Join(
+                    other=other.id,
+                    face_offset=new_end,
+                    delta=new_end - r_end,
+                    new_end=new_end,
+                    trimmed=-gap,
+                    partner_covers=True,
+                )
                 w.door_gaps.append((lo_r, hi_r))
                 stats["gap_walk_doors"] += 1
                 stats["gap_doors"] += 1
@@ -489,19 +543,30 @@ def bridge_door_gaps(model: Model, cfg: Config = Config()) -> dict:
             ci = np.clip(((r_[inner] - lo_r) / (gap / n)).astype(int), 0, n - 1)
             is_door = (np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean() >= cfg.open_gap_floor
             # a passage has floor on both sides of the line (R9-3)
-            is_door = is_door and ((along & (s_ > half) & (s_ < half + 0.5)).sum() >= cfg.open_min_pts
-                                   and (along & (s_ < -half) & (s_ > -half - 0.5)).sum() >= cfg.open_min_pts)
-            is_window = (not is_door and cfg.open_gap_windows
-                         and (np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean() < cfg.open_gap_floor
-                         and window_gap(w, lo_r, hi_r, gap, half,
-                                        paired="paired" in (w.pairing, other.pairing)))
+            is_door = is_door and (
+                (along & (s_ > half) & (s_ < half + 0.5)).sum() >= cfg.open_min_pts
+                and (along & (s_ < -half) & (s_ > -half - 0.5)).sum() >= cfg.open_min_pts
+            )
+            is_window = (
+                not is_door
+                and cfg.open_gap_windows
+                and (np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean() < cfg.open_gap_floor
+                and window_gap(w, lo_r, hi_r, gap, half, paired="paired" in (w.pairing, other.pairing))
+            )
             if cfg.open_debug:
                 last_shares[:] = []
                 if not is_door:
                     window_gap(w, lo_r, hi_r, gap, half, paired="paired" in (w.pairing, other.pairing))
                 floor_share = float((np.bincount(ci, minlength=n) >= cfg.open_min_pts).mean())
-                note("door" if is_door else ("window" if is_window else "evidence"), w, end, a, gap=round(gap, 2),
-                     floor=round(floor_share, 2), sill_head_glass=list(last_shares))
+                note(
+                    "door" if is_door else ("window" if is_window else "evidence"),
+                    w,
+                    end,
+                    a,
+                    gap=round(gap, 2),
+                    floor=round(floor_share, 2),
+                    sill_head_glass=list(last_shares),
+                )
             if not (is_door or is_window):
                 continue
             done.add(key)
@@ -515,8 +580,14 @@ def bridge_door_gaps(model: Model, cfg: Config = Config()) -> dict:
             facing = ({"r1": "r0", "r0": "r1"}[end]) if same else end
             other.unjoined = [e for e in other.unjoined if e != facing]
             new_end = hi_r if end == "r1" else lo_r
-            w.joins[end] = Join(other=other.id, face_offset=new_end, delta=new_end - r_end,
-                                new_end=new_end, trimmed=-gap, partner_covers=True)
+            w.joins[end] = Join(
+                other=other.id,
+                face_offset=new_end,
+                delta=new_end - r_end,
+                new_end=new_end,
+                trimmed=-gap,
+                partner_covers=True,
+            )
             o_end = other.r0 if facing == "r0" else other.r1
             other.joins.setdefault(facing, Join(other=w.id, face_offset=o_end, delta=0.0, new_end=o_end))
             if is_door:
@@ -559,8 +630,9 @@ def _in_reveal(w: Wall, s_: np.ndarray, cfg: Config, flip: bool = False) -> np.n
     return (s_ - face) * body > cfg.open_gap_reveal_clear
 
 
-def _window_extent(w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float,
-                   cfg: Config, flip: bool = False) -> tuple[float, float] | None:
+def _window_extent(
+    w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float, cfg: Config, flip: bool = False
+) -> tuple[float, float] | None:
     """(sill, head) above the floor of a window gap a-b along `w`, per 0.1 m column,
     medians over the columns (review R13-1):
     sill — the top of the solid run of 0.1 m cells climbing from the lowest return in
@@ -639,7 +711,7 @@ def _gap_opening(w: Wall, a: float, b: float, pts: np.ndarray, floor_z: float, c
             np.add.at(grid, (ci, zi), 1)
             row = (grid >= cfg.open_min_pts).mean(axis=0) >= 0.5
             lo = int(round(cfg.door_head[0] / cfg.open_cell_z))
-            solid = np.flatnonzero(row[lo:-1] & row[lo + 1:])
+            solid = np.flatnonzero(row[lo:-1] & row[lo + 1 :])
             if len(solid):
                 head = floor_z + (int(solid[0]) + lo) * cfg.open_cell_z
     o = Opening(along0=a, along1=b, sill_z=floor_z, head_z=head)
@@ -751,14 +823,22 @@ def beam_runs(model: Model, cfg: Config = Config()) -> dict[str, list[tuple[str,
             fz5 = float(np.percentile(pz[sel], 5))
             z5, z95 = float(np.percentile(zc[sel], 5)), float(np.percentile(zc[sel], 95))
             kind = None
-            if fz5 >= cfg.open_beam_window_z and \
-                    cfg.open_beam_window_width[0] <= b - a <= cfg.open_beam_window_width[1]:
+            if (
+                fz5 >= cfg.open_beam_window_z
+                and cfg.open_beam_window_width[0] <= b - a <= cfg.open_beam_window_width[1]
+            ):
                 kind = "window"
-            elif walked and fz5 < cfg.open_beam_door_z \
-                    and cfg.open_beam_door_width[0] <= b - a <= cfg.open_beam_door_width[1]:
+            elif (
+                walked
+                and fz5 < cfg.open_beam_door_z
+                and cfg.open_beam_door_width[0] <= b - a <= cfg.open_beam_door_width[1]
+            ):
                 if walk_r is None:  # where the path crosses this wall's line (lazy, R10-8)
-                    good = on_storey[:-1] & on_storey[1:] & (np.linalg.norm(st2[1:] - st2[:-1], axis=1)
-                                                     <= cfg.open_beam_walk_step)
+                    good = (
+                        on_storey[:-1]
+                        & on_storey[1:]
+                        & (np.linalg.norm(st2[1:] - st2[:-1], axis=1) <= cfg.open_beam_walk_step)
+                    )
                     sw = np.flatnonzero(good & ((sp_st[:-1] > 0) != (sp_st[1:] > 0)))
                     tt = sp_st[sw] / (sp_st[sw] - sp_st[sw + 1])
                     walk_r = (st2[sw] + tt[:, None] * (st2[sw + 1] - st2[sw])) @ v
@@ -770,8 +850,9 @@ def beam_runs(model: Model, cfg: Config = Config()) -> dict[str, list[tuple[str,
     return out
 
 
-def _beam_opening(w: Wall, kind: str, a: float, b: float, z5: float, z95: float,
-                  pts: np.ndarray, floor_z: float, cfg: Config) -> Opening:
+def _beam_opening(
+    w: Wall, kind: str, a: float, b: float, z5: float, z95: float, pts: np.ndarray, floor_z: float, cfg: Config
+) -> Opening:
     """An opening seen through. A door is read as a doorway between pieces is
     (`_gap_opening`). A window's sill is the top of the solid wall (rows of 0.1 m
     cells with returns in half the 0.2 m columns, inside the wall's thickness)
@@ -792,12 +873,18 @@ def _beam_opening(w: Wall, kind: str, a: float, b: float, z5: float, z95: float,
         m = (np.abs(s_) < half) & (r_ >= a) & (r_ < b) & (z >= floor_z) & (z < floor_z + nz * cfg.open_cell_z)
         if m.any():
             grid = np.zeros((ncol, nz), np.int32)
-            np.add.at(grid, (np.clip(((r_[m] - a) / cfg.open_col).astype(int), 0, ncol - 1),
-                             ((z[m] - floor_z) / cfg.open_cell_z).astype(int)), 1)
+            np.add.at(
+                grid,
+                (
+                    np.clip(((r_[m] - a) / cfg.open_col).astype(int), 0, ncol - 1),
+                    ((z[m] - floor_z) / cfg.open_cell_z).astype(int),
+                ),
+                1,
+            )
             row = (grid >= cfg.open_min_pts).mean(axis=0) >= 0.5
             lo, hi = int(z5 / cfg.open_cell_z), int(np.ceil(z95 / cfg.open_cell_z))
-            below = np.flatnonzero(row[:max(lo, 0)])
-            above = np.flatnonzero(row[min(hi, nz):]) + min(hi, nz)
+            below = np.flatnonzero(row[: max(lo, 0)])
+            above = np.flatnonzero(row[min(hi, nz) :]) + min(hi, nz)
             if len(below):
                 sill = floor_z + (int(below[-1]) + 1) * cfg.open_cell_z
             if len(above):
@@ -818,8 +905,11 @@ def _overlap(a: tuple[int, int], b: tuple[int, int]) -> float:
 
 def _classify(o: Opening, floor_z: float, cfg: Config) -> str:
     sill, head = o.sill_z - floor_z, o.head_z - floor_z
-    if sill <= cfg.door_sill_max and cfg.door_head[0] <= head <= cfg.door_head[1] \
-            and cfg.door_width[0] <= o.width <= cfg.door_width[1]:
+    if (
+        sill <= cfg.door_sill_max
+        and cfg.door_head[0] <= head <= cfg.door_head[1]
+        and cfg.door_width[0] <= o.width <= cfg.door_width[1]
+    ):
         return "door"
     if sill >= cfg.window_sill_min and o.height >= cfg.window_min_height:
         return "window"
@@ -827,8 +917,18 @@ def _classify(o: Opening, floor_z: float, cfg: Config) -> str:
 
 
 def find_openings(model: Model, cfg: Config = Config()) -> dict:
-    stats = {"faces": 0, "openings": 0, "doors": 0, "windows": 0, "unresolved": 0,
-             "rejected_width": 0, "rejected_occluded": 0, "beam_runs": 0, "from_beam": 0, "beam_dropped": 0}
+    stats = {
+        "faces": 0,
+        "openings": 0,
+        "doors": 0,
+        "windows": 0,
+        "unresolved": 0,
+        "rejected_width": 0,
+        "rejected_occluded": 0,
+        "beam_runs": 0,
+        "from_beam": 0,
+        "beam_dropped": 0,
+    }
     if model.cloud is None or model.levels is None or not model.walls:
         return stats
     floor_z = float(model.levels.floor_z)
@@ -881,15 +981,17 @@ def find_openings(model: Model, cfg: Config = Config()) -> dict:
         # clip once to the wall as joined, then class again on what is left (R8-7)
         kept = list(gap_doors)
         for o in found:
-            if any(min(g.along1, o.along1) - max(g.along0, o.along0) >= 0.5 * min(g.width, o.width)
-                   for g in gap_doors):
+            if any(min(g.along1, o.along1) - max(g.along0, o.along0) >= 0.5 * min(g.width, o.width) for g in gap_doors):
                 continue  # the same doorway, already taken from the gap (R9-5)
             o.along0, o.along1 = max(o.along0, w.r0), min(o.along1, w.r1)
             if o.width < cfg.open_min_keep or o.height <= 0.3:
                 continue
             o.kind = _classify(o, floor_z, cfg)
-            o.derivation = "unresolved" if o.kind == "unresolved" else (
-                o.derivation if o.derivation.startswith("measured") else "measured")
+            o.derivation = (
+                "unresolved"
+                if o.kind == "unresolved"
+                else (o.derivation if o.derivation.startswith("measured") else "measured")
+            )
             kept.append(o)
         # openings seen through (round 10): taken where nothing else was found
         for kind, a, b, z5, z95 in beams.get(w.id, []):
@@ -898,13 +1000,15 @@ def find_openings(model: Model, cfg: Config = Config()) -> dict:
             # the same opening already read: kept, unless it was left unresolved
             # and the beams class it (R10-4)
             same = [x for x in kept if min(x.along1, b) - max(x.along0, a) >= 0.5 * min(x.width, b - a)]
-            if any(x.kind != "unresolved" for x in same) or \
-                    any(min(x.along1, b) - max(x.along0, a) > 0 for x in kept if x not in same):
+            if any(x.kind != "unresolved" for x in same) or any(
+                min(x.along1, b) - max(x.along0, a) > 0 for x in kept if x not in same
+            ):
                 continue
             mid = w.axis_offset() * w.unit + (a + b) / 2 * w.perp
             near = tree.query_ball_point(mid, (b - a) / 2 + 0.5)
-            o = _beam_opening(w, kind, max(a, w.r0), min(b, w.r1), z5, z95,
-                              pts[np.asarray(near, dtype=np.int64)], floor_z, cfg)
+            o = _beam_opening(
+                w, kind, max(a, w.r0), min(b, w.r1), z5, z95, pts[np.asarray(near, dtype=np.int64)], floor_z, cfg
+            )
             if o.width < cfg.open_min_keep or o.kind != kind:
                 stats["beam_dropped"] += 1  # e.g. a walk-through that does not read as a door
                 continue

@@ -26,7 +26,6 @@ from ..geometry import join_wall_ends
 from ..model import Cloud, Face, LevelSet, Wall
 from .s1_faces import CeilingMap, column_classes, storey_band
 
-
 # ------------------------------------------------------------------------ pairing
 
 
@@ -117,8 +116,7 @@ def _pair_group(group: list[Face], direction: float, cfg: Config) -> list[Wall]:
         return max(group[i].r0, group[j].r0), min(group[i].r1, group[j].r1)
 
     def free(face: int, a: float, b: float) -> bool:
-        return all(b <= c0 + cfg.pair_span_slack or a >= c1 - cfg.pair_span_slack
-                   for c0, c1 in claimed.get(face, []))
+        return all(b <= c0 + cfg.pair_span_slack or a >= c1 - cfg.pair_span_slack for c0, c1 in claimed.get(face, []))
 
     matched: dict[tuple[int, int], str] = {}
     claimed: dict[int, list[tuple[float, float]]] = {}
@@ -129,7 +127,6 @@ def _pair_group(group: list[Face], direction: float, cfg: Config) -> list[Wall]:
         matched[(i, j)] = kind
         claimed.setdefault(i, []).append((a, b))
         claimed.setdefault(j, []).append((a, b))
-    taken = set(claimed)
 
     # A face with two legal partners of near-equal thickness cannot say which is
     # the wall and which is the thing standing in front of it — but only if the
@@ -137,7 +134,7 @@ def _pair_group(group: list[Face], direction: float, cfg: Config) -> list[Wall]:
     # not a collinear piece of the chosen partner's surface.
     doubtful: set[tuple[int, int]] = set()
     contested: set[int] = set()
-    for (i, j) in matched:
+    for i, j in matched:
         chosen = legal[(i, j)][0]
         a, b = span(i, j)
         for face, other in ((i, j), (j, i)):
@@ -383,8 +380,11 @@ def assign_single_sided(walls: list[Wall], cloud: Cloud, levels: LevelSet, cfg: 
             w.body_side, side_source = 1, "floor support (room on the - side)"
         elif fm <= cfg.side_floor_absent and fp >= cfg.side_floor_present:
             w.body_side, side_source = -1, "floor support (room on the + side)"
-        elif (not one_viewpoint and not f.partial_height
-              and (layer_plus := _far_layer(ev, 1, fp, fm, cfg)) != _far_layer(ev, -1, fp, fm, cfg)):
+        elif (
+            not one_viewpoint
+            and not f.partial_height
+            and (layer_plus := _far_layer(ev, 1, fp, fm, cfg)) != _far_layer(ev, -1, fp, fm, cfg)
+        ):
             # the wall's far face, scanned from the next room, is a dense parallel
             # layer within a wall thickness on the body side only (accuracy round 3:
             # the point count below chose the wrong side 34 times in 41 on Grainger
@@ -393,8 +393,11 @@ def assign_single_sided(walls: list[Wall], cloud: Cloud, levels: LevelSet, cfg: 
             side_source = "far-face layer"
         else:
             w.body_side = _body_side(f, points, cfg)
-            side_source = ("point-count (station unknown, floor on both sides)"
-                           if min(fp, fm) > cfg.side_floor_absent else "point-count (station unknown)")
+            side_source = (
+                "point-count (station unknown, floor on both sides)"
+                if min(fp, fm) > cfg.side_floor_absent
+                else "point-count (station unknown)"
+            )
         body_floor = fp if w.body_side > 0 else fm
         # Envelope needs nothing beyond it *and* no floor beyond it: a partition
         # whose next room was scanned is not a facade (TUB1 W04).
@@ -497,8 +500,10 @@ def doorway_check(cloud: Cloud, levels: LevelSet, ceilings: CeilingMap, cfg: Con
         above = np.full(ncol, wall.z1 - cfg.ceiling_tolerance)
         sides = [f.facing] if f.facing else [1, -1]
         ceil = np.min(
-            [ceilings.at((f.offset + sd * cfg.ceiling_probe) * u[None, :] + rc[:, None] * v[None, :], above=above)
-             for sd in sides],
+            [
+                ceilings.at((f.offset + sd * cfg.ceiling_probe) * u[None, :] + rc[:, None] * v[None, :], above=above)
+                for sd in sides
+            ],
             axis=0,
         )
         col = np.clip(((r[m] - a) / ((b - a) / ncol)).astype(int), 0, ncol - 1)
@@ -556,21 +561,39 @@ def residual_walls(walls: list[Wall], cfg: Config) -> list[Wall]:
                 continue
             # the stretch continues the nearest pair along the face, and inherits its kind
             w = min(ws, key=lambda x: min(abs(x.r0_meas - b), abs(x.r1_meas - a)))
-            piece = replace(f, r0=float(a), r1=float(b), length=float(b - a),
-                            offset=float(f.k * (a + b) / 2.0 + f.c),
-                            points=int(round(f.points * (b - a) / max(f.length, 1e-9))),
-                            bridged=[x for x in f.bridged if a <= x[0] and x[1] <= b],
-                            pier_bridged=[x for x in f.pier_bridged if a <= x[0] and x[1] <= b])
+            piece = replace(
+                f,
+                r0=float(a),
+                r1=float(b),
+                length=float(b - a),
+                offset=float(f.k * (a + b) / 2.0 + f.c),
+                points=int(round(f.points * (b - a) / max(f.length, 1e-9))),
+                bridged=[x for x in f.bridged if a <= x[0] and x[1] <= b],
+                pier_bridged=[x for x in f.pier_bridged if a <= x[0] and x[1] <= b],
+            )
             if w.thickness_source.startswith("bounded"):
                 # Only the near face is a wall. Its surplus is an ordinary single-sided
                 # wall (thickness assumed later); the far surface's surplus is nothing.
                 lo_f, hi_f = sorted(w.faces, key=lambda x: x.offset)
                 if f is not (lo_f if lo_f.facing == -1 else hi_f):
                     continue
-                out.append(Wall(id="", direction=w.direction, offset=piece.offset, thickness=None,
-                                thickness_source="unknown", pairing="single-sided",
-                                r0=float(a), r1=float(b), r0_meas=float(a), r1_meas=float(b),
-                                z0=float(f.zmin), z1=float(f.zmax), faces=[piece]))
+                out.append(
+                    Wall(
+                        id="",
+                        direction=w.direction,
+                        offset=piece.offset,
+                        thickness=None,
+                        thickness_source="unknown",
+                        pairing="single-sided",
+                        r0=float(a),
+                        r1=float(b),
+                        r0_meas=float(a),
+                        r1_meas=float(b),
+                        z0=float(f.zmin),
+                        z1=float(f.zmax),
+                        faces=[piece],
+                    )
+                )
                 continue
             lo, hi = w.plane_offsets()
             side = 1 if abs(f.offset - lo) <= abs(f.offset - hi) else -1
@@ -616,8 +639,7 @@ def unpaired_opposite_neighbours(walls: list[Wall], cfg: Config) -> int:
     n = 0
     for direction in sorted({w.direction for w in walls}):
         # every face blocks medially, paired or not; only unpaired faces are counted
-        group = sorted((f for w in walls if w.direction == direction for f in w.faces),
-                       key=lambda f: f.offset)
+        group = sorted((f for w in walls if w.direction == direction for f in w.faces), key=lambda f: f.offset)
         unpaired = {id(w.faces[0]) for w in walls if w.direction == direction and w.pairing != "paired" and w.faces}
         for i in range(len(group)):
             for j in range(i + 1, len(group)):

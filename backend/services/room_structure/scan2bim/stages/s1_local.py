@@ -106,15 +106,30 @@ def _trim(f: Face, kept: list[Face], cfg: Config) -> Face | None:
     r0, r1 = float(rs[starts[k]]), float(rs[ends[k] - 1])
     if r1 - r0 < cfg.local_min_piece:
         return None
-    return replace(f, r0=r0, r1=r1, length=r1 - r0, offset=float(f.k * (r0 + r1) / 2 + f.c),
-                   points=int(round(f.points * (r1 - r0) / max(f.length, 1e-9))),
-                   bridged=[x for x in f.bridged if r0 <= x[0] and x[1] <= r1],
-                   pier_bridged=[x for x in f.pier_bridged if r0 <= x[0] and x[1] <= r1])
+    return replace(
+        f,
+        r0=r0,
+        r1=r1,
+        length=r1 - r0,
+        offset=float(f.k * (r0 + r1) / 2 + f.c),
+        points=int(round(f.points * (r1 - r0) / max(f.length, 1e-9))),
+        bridged=[x for x in f.bridged if r0 <= x[0] and x[1] <= r1],
+        pier_bridged=[x for x in f.pier_bridged if r0 <= x[0] and x[1] <= r1],
+    )
 
 
-def local_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], directions: list[float],
-                cfg: Config, floor_z: float, ceilings, stations=None, scan=None,
-                rejected: list[dict] | None = None) -> tuple[list[Face], dict]:
+def local_faces(
+    band: np.ndarray,
+    normals: np.ndarray,
+    faces: list[Face],
+    directions: list[float],
+    cfg: Config,
+    floor_z: float,
+    ceilings,
+    stations=None,
+    scan=None,
+    rejected: list[dict] | None = None,
+) -> tuple[list[Face], dict]:
     from .s1_faces import find_faces  # local import: s1_faces calls this module
 
     stats = {"tiles": 0, "tiles_oriented": 0, "faces": 0, "length_m": 0.0}
@@ -140,7 +155,7 @@ def local_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], direct
         for dc in ((0, 0), (1, 0), (0, 1), (1, 1)):  # a tile is 2 x 2 half-tile cells
             hit = where.get((ci + dc[0], cj + dc[1]))
             if hit is not None:
-                parts.append(idx[hit[0]:hit[0] + hit[1]])
+                parts.append(idx[hit[0] : hit[0] + hit[1]])
         if not parts:
             continue
         pick = np.concatenate(parts)
@@ -156,8 +171,15 @@ def local_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], direct
         stats["tiles_oriented"] += 1
         rej: list[dict] = []
         found += find_faces(
-            band[pick], normals[pick], d, tile_cfg, floor_z=floor_z, ceilings=ceilings, rejected=rej,
-            stations=stations, scan=None if scan is None else scan[pick],
+            band[pick],
+            normals[pick],
+            d,
+            tile_cfg,
+            floor_z=floor_z,
+            ceilings=ceilings,
+            rejected=rej,
+            stations=stations,
+            scan=None if scan is None else scan[pick],
         )
         if rejected is not None:
             rejected += [{**x, "pass": "local"} for x in rej]

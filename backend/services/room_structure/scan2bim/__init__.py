@@ -1,6 +1,6 @@
 """scan2bim — terrestrial LiDAR point cloud to IFC4 and Pascal Editor scenes."""
 
-from .config import Config, DEFAULT
+from .config import DEFAULT, Config
 from .model import Cloud, Face, LevelSet, Model, Opening, Plane, SlabPair, Wall
 
 __all__ = [

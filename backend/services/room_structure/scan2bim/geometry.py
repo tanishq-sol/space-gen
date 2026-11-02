@@ -178,14 +178,19 @@ def join_wall_ends(
     for wall in walls:
         for end in ("r0", "r1"):
             end_r = wall.r0_meas if end == "r0" else wall.r1_meas
-            cands = _candidate_joins(wall, end, walls, max_gap, perp_tol_deg, extent_slack, extent_slack,
-                                     min_angle_deg)
+            cands = _candidate_joins(wall, end, walls, max_gap, perp_tol_deg, extent_slack, extent_slack, min_angle_deg)
             inferred = False
             if not cands and inferred_reach > 0.0:
                 ahead = 1.0 if end == "r1" else -1.0
                 cands = []
                 for c in _candidate_joins(
-                    wall, end, walls, inferred_reach, perp_tol_deg, inferred_reach, extent_slack,
+                    wall,
+                    end,
+                    walls,
+                    inferred_reach,
+                    perp_tol_deg,
+                    inferred_reach,
+                    extent_slack,
                     min_angle_deg,
                 ):
                     extension = max((c[2] - end_r) * ahead, 0.0)
@@ -193,9 +198,7 @@ def join_wall_ends(
                         continue
                     if extension + c[5] > inferred_reach:
                         continue
-                    if is_doorway is not None and extension > 0 and is_doorway(
-                        wall, end, end_r, c[2]
-                    ):
+                    if is_doorway is not None and extension > 0 and is_doorway(wall, end, end_r, c[2]):
                         wall.doorway_ends.append(end)
                         continue
                     cands.append(c)
@@ -243,9 +246,4 @@ def join_wall_ends(
 
 def overrun_report(walls: list[Wall]) -> dict[str, float]:
     """Metres each joined end was trimmed back, keyed `wall_id:end`."""
-    return {
-        f"{w.id}:{end}": j.overrun
-        for w in walls
-        for end, j in w.joins.items()
-        if j.overrun > 0
-    }
+    return {f"{w.id}:{end}": j.overrun for w in walls for end, j in w.joins.items() if j.overrun > 0}

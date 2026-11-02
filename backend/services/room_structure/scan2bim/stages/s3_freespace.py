@@ -126,8 +126,9 @@ def _polygon(mask: np.ndarray, origin: np.ndarray, cell: float) -> Polygon | Non
         for a, b in zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1)):
             # both edges from integer cell indices, so neighbouring rows share exact
             # coordinates (x0 + cell drifts and left slivers between rows)
-            rects.append(box((origin[0] + i) * cell, (origin[1] + a) * cell,
-                             (origin[0] + i + 1) * cell, (origin[1] + b) * cell))
+            rects.append(
+                box((origin[0] + i) * cell, (origin[1] + a) * cell, (origin[0] + i + 1) * cell, (origin[1] + b) * cell)
+            )
     if not rects:
         return None
     g = unary_union(rects)
@@ -141,10 +142,19 @@ def _polygon(mask: np.ndarray, origin: np.ndarray, cell: float) -> Polygon | Non
     return g if g.geom_type == "Polygon" and not g.is_empty else None
 
 
-def free_space_rooms(model: Model, traced: list[Room], cfg: Config = Config(),
-                     debug: dict | None = None) -> tuple[list[Room], dict]:
-    stats = {"regions": 0, "added": 0, "rejected_small": 0, "rejected_large": 0, "rejected_traced": 0,
-             "door_cuts": 0, "small_seeds": 0, "small_seeds_dropped": 0}
+def free_space_rooms(
+    model: Model, traced: list[Room], cfg: Config = Config(), debug: dict | None = None
+) -> tuple[list[Room], dict]:
+    stats = {
+        "regions": 0,
+        "added": 0,
+        "rejected_small": 0,
+        "rejected_large": 0,
+        "rejected_traced": 0,
+        "door_cuts": 0,
+        "small_seeds": 0,
+        "small_seeds_dropped": 0,
+    }
     if model.cloud is None or model.levels is None:
         return [], stats
     cell = cfg.room_fs_cell
@@ -176,8 +186,12 @@ def free_space_rooms(model: Model, traced: list[Room], cfg: Config = Config(),
     step = np.zeros(seen.shape, bool)
     if upper is not None:
         step = lower & ndimage.binary_dilation(upper, np.ones((3, 3)))
-        step |= (seen & ~raw & ndimage.binary_dilation(upper, np.ones((5, 5)))
-                 & ndimage.binary_dilation(lower, np.ones((5, 5))))
+        step |= (
+            seen
+            & ~raw
+            & ndimage.binary_dilation(upper, np.ones((5, 5)))
+            & ndimage.binary_dilation(lower, np.ones((5, 5)))
+        )
 
     walls = np.zeros(seen.shape, bool)
     # doorways found between wall pieces (round 12): the free space is cut across
@@ -190,13 +204,21 @@ def free_space_rooms(model: Model, traced: list[Room], cfg: Config = Config(),
         from .s4_openings import bridge_door_gaps
 
         # shallow copies: bridging changes only these fields (faces stay shared, R12-3)
-        probe = [dc_replace(w, unjoined=list(w.unjoined), joins=dict(w.joins), door_gaps=list(w.door_gaps),
-                            window_gaps=list(w.window_gaps))
-                 for w in model.walls]
+        probe = [
+            dc_replace(
+                w,
+                unjoined=list(w.unjoined),
+                joins=dict(w.joins),
+                door_gaps=list(w.door_gaps),
+                window_gaps=list(w.window_gaps),
+            )
+            for w in model.walls
+        ]
         before = {w.id: len(w.door_gaps) for w in model.walls}
         # door cuts only: the window tests (and their point index) are not needed here
-        bridge_door_gaps(Model(cloud=model.cloud, levels=model.levels, walls=probe),
-                         dc_replace(cfg, open_gap_windows=False))
+        bridge_door_gaps(
+            Model(cloud=model.cloud, levels=model.levels, walls=probe), dc_replace(cfg, open_gap_windows=False)
+        )
         door_walls = [w for w in probe if len(w.door_gaps) > before[w.id]]  # new cuts only (R12-4)
         stats["door_cuts"] = sum(len(w.door_gaps) - before[w.id] for w in door_walls)
     for w in [*model.walls, *door_walls]:
@@ -211,8 +233,11 @@ def free_space_rooms(model: Model, traced: list[Room], cfg: Config = Config(),
         j0 = max(int(np.floor(y0 / cell)) - origin[1] - 1, 0)
         j1 = min(int(np.floor(y1 / cell)) - origin[1] + 2, seen.shape[1])
         if i1 > i0 and j1 > j0:
-            X, Y = np.meshgrid((origin[0] + np.arange(i0, i1) + 0.5) * cell,
-                               (origin[1] + np.arange(j0, j1) + 0.5) * cell, indexing="ij")
+            X, Y = np.meshgrid(
+                (origin[0] + np.arange(i0, i1) + 0.5) * cell,
+                (origin[1] + np.arange(j0, j1) + 0.5) * cell,
+                indexing="ij",
+            )
             walls[i0:i1, j0:j1] |= contains_xy(f, X, Y)
     free = seen & ~walls & ~step
     if step.any():
@@ -381,12 +406,18 @@ def free_space_rooms(model: Model, traced: list[Room], cfg: Config = Config(),
             # a core or a traced room inside the region: rooms carry no holes, so
             # the outline is the exterior and the area the true floor area; say so
             stats["with_holes"] = stats.get("with_holes", 0) + 1
-        rooms.append(Room(
-            id="", polygon=[(float(x), float(y)) for x, y in poly.exterior.coords],
-            area_m2=float(poly.area), perimeter_m=float(poly.exterior.length),
-            floor_z=float(model.levels.floor_z), ceiling_z=None,
-            closure_gaps=[{"kind": "free-space", "gap_mm": None, "wall": None, "end": None}],
-            support=0.0, derivation="free-space",
-        ))
+        rooms.append(
+            Room(
+                id="",
+                polygon=[(float(x), float(y)) for x, y in poly.exterior.coords],
+                area_m2=float(poly.area),
+                perimeter_m=float(poly.exterior.length),
+                floor_z=float(model.levels.floor_z),
+                ceiling_z=None,
+                closure_gaps=[{"kind": "free-space", "gap_mm": None, "wall": None, "end": None}],
+                support=0.0,
+                derivation="free-space",
+            )
+        )
     stats["added"] = len(rooms)
     return rooms, stats

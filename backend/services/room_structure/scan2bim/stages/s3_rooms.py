@@ -133,8 +133,9 @@ def make_rays(model: Model, cfg: Config) -> list[Rays] | None:
     order = sel[np.argsort(idx[sel], kind="stable")]
     keys = idx[order]
     cuts = np.flatnonzero(np.diff(keys)) + 1
-    bundles = [Rays(p[part, :2], stations[idx[part[0]]])
-               for part in np.split(order, cuts) if len(part) >= cfg.gap_min_rays]
+    bundles = [
+        Rays(p[part, :2], stations[idx[part[0]]]) for part in np.split(order, cuts) if len(part) >= cfg.gap_min_rays
+    ]
     return bundles or None
 
 
@@ -196,8 +197,14 @@ def gap_chords(
                 continue
             gap, other, line = target
             through, blocked = gap_evidence(line, rays, cfg)
-            entry = {"wall": w.id, "end": end, "to": other.id, "gap_m": round(gap, 3),
-                     "rays_through": through, "rays_blocked": blocked}
+            entry = {
+                "wall": w.id,
+                "end": end,
+                "to": other.id,
+                "gap_m": round(gap, 3),
+                "rays_through": through,
+                "rays_blocked": blocked,
+            }
             if through >= cfg.gap_min_rays:
                 kind = "opening" if gap <= cfg.opening_max else "open"
             elif blocked >= cfg.gap_min_rays:  # and fewer than gap_min_rays through: noise
@@ -242,6 +249,7 @@ def partition_lines(poly: Polygon, rejected: list[dict], faces: list[LineString]
             break
     return out
 
+
 # ------------------------------------------------------------------ wall geometry
 
 
@@ -260,9 +268,7 @@ def wall_caps(wall: Wall) -> list[LineString]:
     """The wall's two end faces. A wall end is a real surface, not open space."""
     u, v = wall.unit, wall.perp
     lo, hi = wall.plane_offsets()
-    return [
-        LineString([lo * u + r * v, hi * u + r * v]) for r in (wall.r0, wall.r1)
-    ]
+    return [LineString([lo * u + r * v, hi * u + r * v]) for r in (wall.r0, wall.r1)]
 
 
 def footprint(wall: Wall) -> Polygon:
@@ -389,17 +395,9 @@ def boundary_evidence(
     if total == 0.0:
         return 0.0, 0.0, []
 
-    support = float(
-        sum(lengths[i] * near[owner == i].mean() for i in range(len(lengths))) / total
-    )
-    bridged = float(
-        sum(lengths[i] * (1.0 - branch[owner == i].mean()) for i in range(len(lengths)))
-    )
-    unsupported = [
-        LineString([ring[i], ring[i + 1]])
-        for i in range(len(lengths))
-        if branch[owner == i].mean() < 0.999
-    ]
+    support = float(sum(lengths[i] * near[owner == i].mean() for i in range(len(lengths))) / total)
+    bridged = float(sum(lengths[i] * (1.0 - branch[owner == i].mean()) for i in range(len(lengths))))
+    unsupported = [LineString([ring[i], ring[i + 1]]) for i in range(len(lengths)) if branch[owner == i].mean() < 0.999]
     return support, bridged, unsupported
 
 
@@ -423,6 +421,7 @@ def fills_gap(chord: LineString, unsupported: list[LineString], tol: float = 0.0
 
 
 # ------------------------------------------------------------------- floor cover
+
 
 def floor_coverage(
     points: np.ndarray,
@@ -513,9 +512,7 @@ def build_rooms(model: Model, cfg: Config = Config()) -> tuple[list[Room], dict[
         if area > cfg.room_max_area:
             rejected["too_large"] += 1
             continue
-        support, bridged_m, unsupported = boundary_evidence(
-            poly, faces_all, cfg.room_support_tol, cfg.room_bridge_tol
-        )
+        support, bridged_m, unsupported = boundary_evidence(poly, faces_all, cfg.room_support_tol, cfg.room_bridge_tol)
         if support < cfg.room_min_support:
             rejected["unsupported"] += 1
             continue
@@ -579,9 +576,7 @@ def build_rooms(model: Model, cfg: Config = Config()) -> tuple[list[Room], dict[
         "chords_recorded": sum(1 for c in chords if c.recorded),
         "chords_on_rooms": sum(len(r.closure_gaps) for r in rooms),
         "longest_chord_m": max((c.gap_m for c in chords), default=0.0),
-        "longest_room_gap_m": max(
-            (g["gap_mm"] / 1000 for r in rooms for g in r.closure_gaps), default=0.0
-        ),
+        "longest_room_gap_m": max((g["gap_mm"] / 1000 for r in rooms for g in r.closure_gaps), default=0.0),
         "closure_silent_mm": cfg.closure_silent * 1000,
         # The only chord length that changes a room: the longest stretch of an
         # accepted boundary that no measured surface supports.
@@ -631,8 +626,11 @@ def room_ceiling(model: Model, poly: Polygon, cfg: Config) -> tuple[float | None
     levels = model.levels
     if levels is None:
         return None, 0.0
-    planes = [p for p in sorted(levels.planes, key=lambda p: p.z_fit)
-              if p.z_fit >= levels.floor_z + cfg.room_min_clear and len(p.cells)]
+    planes = [
+        p
+        for p in sorted(levels.planes, key=lambda p: p.z_fit)
+        if p.z_fit >= levels.floor_z + cfg.room_min_clear and len(p.cells)
+    ]
     shares = _plane_covers(levels, poly, planes)
     if shares is None:
         return None, 0.0
@@ -678,12 +676,23 @@ def sunken_floors(levels, cfg: Config, report: list | None = None) -> list:
         if p.area_m2 < cfg.room_fs_sunken_min_area or not len(p.cells):
             continue
         shared = np.isin(_cell_keys(p.cells), floor_keys)
-        why = ("slab underside" if any(p is u for u in undersides)
-               else "under or woven through the floor" if shared.mean() > cfg.room_fs_sunken_max_shared
-               else None)
+        why = (
+            "slab underside"
+            if any(p is u for u in undersides)
+            else "under or woven through the floor"
+            if shared.mean() > cfg.room_fs_sunken_max_shared
+            else None
+        )
         if report is not None:
-            report.append({"z": round(p.z_fit, 3), "area_m2": round(p.area_m2, 1),
-                           "shared": round(float(shared.mean()), 3), "kept": why is None, "why": why})
+            report.append(
+                {
+                    "z": round(p.z_fit, 3),
+                    "area_m2": round(p.area_m2, 1),
+                    "shared": round(float(shared.mean()), 3),
+                    "kept": why is None,
+                    "why": why,
+                }
+            )
         if why is None:
             out.append(replace(p, cells=p.cells[~shared]))
     return out
@@ -741,8 +750,7 @@ def run(model: Model, cfg: Config = Config()) -> None:
                 fs_stats["rejected_no_ceiling"] = fs_stats.get("rejected_no_ceiling", 0) + 1
                 continue
             ring = poly.exterior.buffer(cfg.room_fs_cell * 2.5)
-            r.walls = [w.id for w in model.walls
-                       if footprint(w).exterior.intersection(ring).length >= 0.25]
+            r.walls = [w.id for w in model.walls if footprint(w).exterior.intersection(ring).length >= 0.25]
             kept.append(r)
         # wall-traced rooms keep the ids they had without this stage (review R4-12)
         kept.sort(key=lambda r: (round(_centroid(r)[1], 2), round(_centroid(r)[0], 2), round(r.area_m2, 4)))

@@ -20,19 +20,14 @@ import numpy as np
 from scipy import ndimage
 
 from ..config import Config
-from ..model import Cloud, Face, LevelSet, Plane, SlabPair
 from ..geometry import cell_overlap
-
+from ..model import Cloud, Face, LevelSet, Plane, SlabPair
 
 # ------------------------------------------------------------------------- levels
 
 
 def _pick_peaks(hist: np.ndarray, edges: np.ndarray, min_sep: float, top: int) -> list[int]:
-    idx = [
-        i
-        for i in range(1, len(hist) - 1)
-        if hist[i] >= hist[i - 1] and hist[i] >= hist[i + 1] and hist[i] > 0
-    ]
+    idx = [i for i in range(1, len(hist) - 1) if hist[i] >= hist[i - 1] and hist[i] >= hist[i + 1] and hist[i] > 0]
     idx.sort(key=lambda i: -hist[i])
     picked: list[int] = []
     for i in idx:
@@ -74,12 +69,12 @@ def _validate_plane(points: np.ndarray, z0: float, origin: np.ndarray, cfg: Conf
     sizes[0] = 0
     largest = int(sizes.argmax())
     ys, xs = np.where(labels == largest)
-    area = len(xs) * cfg.level_cell ** 2
-    bbox = (xs.max() - xs.min() + 1) * (ys.max() - ys.min() + 1) * cfg.level_cell ** 2
+    area = len(xs) * cfg.level_cell**2
+    bbox = (xs.max() - xs.min() + 1) * (ys.max() - ys.min() + 1) * cfg.level_cell**2
 
     # The area test uses the largest component; the footprint keeps every component
     # that is a surface in its own right, so one ceiling over two rooms covers both.
-    min_cells = cfg.level_component_min_area / cfg.level_cell ** 2
+    min_cells = cfg.level_component_min_area / cfg.level_cell**2
     kept = np.flatnonzero(sizes >= min_cells)
     fy, fx = np.where(np.isin(labels, kept))
 
@@ -149,10 +144,7 @@ def find_levels(cloud: Cloud, cfg: Config = Config()) -> LevelSet:
 
     large = [p for p in planes if p.area_m2 >= cfg.level_min_area]
     if not large:
-        raise ValueError(
-            f"no horizontal plane reached {cfg.level_min_area} m² — "
-            "is this a building interior?"
-        )
+        raise ValueError(f"no horizontal plane reached {cfg.level_min_area} m² — is this a building interior?")
 
     # Slab pairs are found and reported, but do not decide the floor: on a
     # single-storey scan none exist, and letting a platform 0.1-0.5 m above the floor
@@ -261,7 +253,9 @@ def normal_directions(normals: np.ndarray, cfg: Config = Config()) -> list[float
     for i in peaks:
         c = i * 0.5 + 0.25
         d = np.minimum(np.abs(ang - c), 180.0 - np.abs(ang - c))
-        strong = smooth[i] / background >= cfg.direction_min_contrast and float(np.mean(d < 2.0)) >= cfg.direction_min_share
+        strong = (
+            smooth[i] / background >= cfg.direction_min_contrast and float(np.mean(d < 2.0)) >= cfg.direction_min_share
+        )
         if out and not strong:
             continue
         if all(min(abs(c - x), 180 - abs(c - x)) > cfg.direction_min_separation for x in out):
@@ -271,8 +265,9 @@ def normal_directions(normals: np.ndarray, cfg: Config = Config()) -> list[float
     return out
 
 
-def dominant_directions(xy: np.ndarray, cfg: Config = Config(), max_points: int = 200_000,
-                        normals: np.ndarray | None = None) -> list[float]:
+def dominant_directions(
+    xy: np.ndarray, cfg: Config = Config(), max_points: int = 200_000, normals: np.ndarray | None = None
+) -> list[float]:
     """The wall directions of the storey, each refined to 0.05° on the projection.
 
     With `normals` (of the same points) the candidates are the peaks of
@@ -331,8 +326,7 @@ class CeilingMap:
         # a plane whose every footprint piece is under level_component_min_area has
         # no cells: it is clutter overhead, not a ceiling
         planes = sorted(
-            (p for p in levels.planes
-             if p.z_fit >= levels.floor_z + cfg.room_min_clear and len(p.cells)),
+            (p for p in levels.planes if p.z_fit >= levels.floor_z + cfg.room_min_clear and len(p.cells)),
             key=lambda p: p.z_fit,
         )
         self.levels_z = [p.z_fit for p in planes]
@@ -401,8 +395,14 @@ def _bands(floor_z: float, ceiling: np.ndarray, cfg: Config) -> tuple[np.ndarray
 
 
 def column_classes(
-    col: np.ndarray, z: np.ndarray, ncol: int, floor_z: float, ceiling: np.ndarray, cfg: Config,
-    col_any: np.ndarray | None = None, z_any: np.ndarray | None = None,
+    col: np.ndarray,
+    z: np.ndarray,
+    ncol: int,
+    floor_z: float,
+    ceiling: np.ndarray,
+    cfg: Config,
+    col_any: np.ndarray | None = None,
+    z_any: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
     """Occupancy of each 0.20 m column in three z-zones, and its class.
 
@@ -447,8 +447,16 @@ def column_classes(
         n = m.sum(1)
         upper_any = np.where(n > 0, ((hist_any >= cfg.run_cell_min) & m).sum(1) / np.maximum(n, 1), 0.0)
         pier = lintel & (upper_any >= cfg.run_min_upper)
-    return {"upper": upper, "head": head, "low": low, "wall": wall, "lintel": lintel & ~pier,
-            "glass": glass, "low_only": lowonly, "pier": pier}
+    return {
+        "upper": upper,
+        "head": head,
+        "low": low,
+        "wall": wall,
+        "lintel": lintel & ~pier,
+        "glass": glass,
+        "low_only": lowonly,
+        "pier": pier,
+    }
 
 
 def wall_runs(
@@ -488,8 +496,11 @@ def wall_runs(
         def covered(y: Run) -> float:
             return sum(max(0.0, min(x.r1, y.r1) - max(x.r0, y.r0)) for x in without) / max(y.r1 - y.r0, 1e-9)
 
-        rows = [x for x in with_p if x.pier_bridged and len(x.bridged) >= cfg.run_pier_min_bridges
-                and covered(x) < cfg.run_pier_needed]
+        rows = [
+            x
+            for x in with_p
+            if x.pier_bridged and len(x.bridged) >= cfg.run_pier_min_bridges and covered(x) < cfg.run_pier_needed
+        ]
         if not rows:
             return without, cls_p
         # the runs without piers, clipped to outside the rows; inside a row they stay
@@ -503,9 +514,13 @@ def wall_runs(
                 if b - a >= cfg.face_min_length - cfg.run_col / 2:
                     rest.append(Run(a, b, [g for g in x.bridged if a <= g[0] and g[1] <= b], x.top_gap))
         for y in rows:
-            y.fallback = [Run(max(x.r0, y.r0), min(x.r1, y.r1),
-                              [g for g in x.bridged if y.r0 <= g[0] and g[1] <= y.r1], x.top_gap)
-                          for x in without if min(x.r1, y.r1) - max(x.r0, y.r0) > 0]
+            y.fallback = [
+                Run(
+                    max(x.r0, y.r0), min(x.r1, y.r1), [g for g in x.bridged if y.r0 <= g[0] and g[1] <= y.r1], x.top_gap
+                )
+                for x in without
+                if min(x.r1, y.r1) - max(x.r0, y.r0) > 0
+            ]
         return sorted(rows + rest, key=lambda x: x.r0), cls_p
     lo = float(r.min()) if lo is None else lo
     ceiling = np.asarray(ceiling, float)
@@ -547,7 +562,7 @@ def wall_runs(
             pier_bridges.append([])
 
     # the band points of wall columns locate each run's ends and its top
-    band = (z >= floor_z + cfg.run_upper[0])
+    band = z >= floor_z + cfg.run_upper[0]
     out: list[Run] = []
     for (a, b), br, pbr in zip(groups, bridges, pier_bridges):
         first = band & (col == a) & (r >= lo + a * cfg.run_col)
@@ -559,9 +574,7 @@ def wall_runs(
         if r1 - r0 < cfg.face_min_length - cfg.run_col / 2:
             continue
         tops = [
-            float(ceil[c] - np.percentile(z[col == c], 98))
-            for c in range(a, b + 1)
-            if wall[c] and (col == c).any()
+            float(ceil[c] - np.percentile(z[col == c], 98)) for c in range(a, b + 1) if wall[c] and (col == c).any()
         ]
         out.append(
             Run(
@@ -697,9 +710,17 @@ def find_faces(
     rejected = [] if rejected is None else rejected
 
     def reject(offset: float, r0: float, r1: float, reason: str, **extra) -> None:
-        rejected.append({"dir": round(float(direction), 3), "offset": round(float(offset), 4),
-                         "r0": round(float(r0), 3), "r1": round(float(r1), 3),
-                         "length": round(float(r1 - r0), 3), "reason": reason, **extra})
+        rejected.append(
+            {
+                "dir": round(float(direction), 3),
+                "offset": round(float(offset), 4),
+                "r0": round(float(r0), 3),
+                "r1": round(float(r1), 3),
+                "length": round(float(r1 - r0), 3),
+                "reason": reason,
+                **extra,
+            }
+        )
 
     edges = np.arange(s.min(), s.max() + cfg.face_bin, cfg.face_bin)
     seeds, wide = _seeds(s, r, edges, cfg)
@@ -710,8 +731,9 @@ def find_faces(
 
     faces: list[Face] = []
     for centre in sorted(seeds):
-        sel = order[np.searchsorted(s_sorted, centre - cfg.face_window):
-                    np.searchsorted(s_sorted, centre + cfg.face_window)]
+        sel = order[
+            np.searchsorted(s_sorted, centre - cfg.face_window) : np.searchsorted(s_sorted, centre + cfg.face_window)
+        ]
         if len(sel) < cfg.face_min_points:
             if len(sel):
                 reject(centre, float(r[sel].min()), float(r[sel].max()), "sparse")
@@ -763,8 +785,9 @@ def find_faces(
             if not facing:
                 xy2 = (centre - cfg.ceiling_probe) * u[None, :] + rc[:, None] * v[None, :]
                 ceil = np.minimum(ceil, ceilings.at(xy2, above=top))
-            runs, cls = wall_runs(r_sel[aligned], z_sel[aligned], floor_z, ceil, cfg, lo=line_r0,
-                                  r_any=r_sel, z_any=z_sel)
+            runs, cls = wall_runs(
+                r_sel[aligned], z_sel[aligned], floor_z, ceil, cfg, lo=line_r0, r_any=r_sel, z_any=z_sel
+            )
 
         accepted_here = 0
         pending = list(runs)
@@ -776,8 +799,14 @@ def find_faces(
                 pending[:0] = run.fallback  # a failed row of windows: the runs without piers
                 continue
             face, failed = _measure_face(
-                direction, s_sel[m], r_sel[m], z_sel[m], nd_sel[m], cfg,
-                (run.r0, run.r1) if cls else None, run.bridged,
+                direction,
+                s_sel[m],
+                r_sel[m],
+                z_sel[m],
+                nd_sel[m],
+                cfg,
+                (run.r0, run.r1) if cls else None,
+                run.bridged,
             )
             if face is None:
                 reject(centre, run.r0, run.r1, "failed:" + ",".join(failed))
@@ -794,9 +823,11 @@ def find_faces(
         if not accepted_here and cls:
             # a pier is a lintel column for the reason (the room stage reads "head-only", R14-3)
             lintel_all = cls["lintel"] | cls["pier"] if "pier" in cls else cls["lintel"]
-            col_m = {k: round(float((lintel_all if k == "lintel" else cls[k]).sum()) * cfg.run_col, 2)
-                     for k in ("wall", "lintel", "glass", "low_only")}
-            total = (line_r1 - line_r0)
+            col_m = {
+                k: round(float((lintel_all if k == "lintel" else cls[k]).sum()) * cfg.run_col, 2)
+                for k in ("wall", "lintel", "glass", "low_only")
+            }
+            total = line_r1 - line_r0
             if col_m["glass"] >= cfg.run_reason_share * total:
                 reason = "glass-signature"
             elif col_m["low_only"] >= cfg.run_reason_share * total:
@@ -911,7 +942,9 @@ def dedupe(faces: list[Face], tol: float = 0.03, min_overlap: float = 0.4) -> li
 # --------------------------------------------------------------------------- run
 
 
-def storey_band(cloud: Cloud, levels: LevelSet, cfg: Config = Config(), top: float | None = None) -> tuple[np.ndarray, np.ndarray]:
+def storey_band(
+    cloud: Cloud, levels: LevelSet, cfg: Config = Config(), top: float | None = None
+) -> tuple[np.ndarray, np.ndarray]:
     """Points between floor and ceiling that belong to a vertical surface."""
     p, n = cloud.points, cloud.normals
     assert n is not None
@@ -947,9 +980,7 @@ def run(model, cfg: Config = Config()) -> None:
     lo, hi = cfg.direction_band
     floor_z = model.levels.floor_z
     mid = (
-        (cloud.points[:, 2] > floor_z + lo)
-        & (cloud.points[:, 2] < floor_z + hi)
-        & (np.abs(cloud.normals[:, 2]) < 0.25)  # type: ignore[index]
+        (cloud.points[:, 2] > floor_z + lo) & (cloud.points[:, 2] < floor_z + hi) & (np.abs(cloud.normals[:, 2]) < 0.25)  # type: ignore[index]
     )
     model.direction = dominant_directions(cloud.points[mid, :2], cfg, normals=cloud.normals[mid])  # type: ignore[index]
 
@@ -957,8 +988,15 @@ def run(model, cfg: Config = Config()) -> None:
     for direction in model.direction:
         rejected: list[dict] = []
         found = find_faces(
-            band, band_normals, direction, cfg,
-            floor_z=floor_z, ceilings=ceilings, rejected=rejected, stations=stations, scan=band_scan,
+            band,
+            band_normals,
+            direction,
+            cfg,
+            floor_z=floor_z,
+            ceilings=ceilings,
+            rejected=rejected,
+            stations=stations,
+            scan=band_scan,
         )
         kept = dedupe(found, tol=cfg.face_dedupe_tol)
         model.faces.extend(kept)
@@ -975,14 +1013,33 @@ def run(model, cfg: Config = Config()) -> None:
     if cfg.local_faces:
         from .s1_local import local_faces
 
-        extra, stats = local_faces(band, band_normals, model.faces, model.direction, cfg, floor_z, ceilings,
-                                   stations=stations, scan=band_scan, rejected=model.rejected_faces)
+        extra, stats = local_faces(
+            band,
+            band_normals,
+            model.faces,
+            model.direction,
+            cfg,
+            floor_z,
+            ceilings,
+            stations=stations,
+            scan=band_scan,
+            rejected=model.rejected_faces,
+        )
         model.faces.extend(extra)
         model.meta["local_faces"] = stats
     if cfg.arc_faces:
         from .s1_arcs import arc_faces
 
-        extra, stats = arc_faces(band, band_normals, model.faces, cfg, floor_z, ceilings,
-                                 stations=stations, scan=band_scan, rejected=model.rejected_faces)
+        extra, stats = arc_faces(
+            band,
+            band_normals,
+            model.faces,
+            cfg,
+            floor_z,
+            ceilings,
+            stations=stations,
+            scan=band_scan,
+            rejected=model.rejected_faces,
+        )
         model.faces.extend(extra)
         model.meta["arc_faces"] = stats

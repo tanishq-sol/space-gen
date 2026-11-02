@@ -65,15 +65,29 @@ class Cloud:
 
     def take(self, idx: np.ndarray) -> "Cloud":
         """A copy keeping only the points at `idx` (indices or a boolean mask)."""
-        pick = lambda a: None if a is None else a[idx]
+
+        def pick(a):
+            return None if a is None else a[idx]
+
         return Cloud(
-            points=self.points[idx], normals=pick(self.normals), colours=pick(self.colours),
-            intensity=pick(self.intensity), hits=pick(self.hits), source=self.source,
-            n_input=self.n_input, n_dropped=self.n_dropped, station=self.station,
-            station_source=self.station_source, station_info=dict(self.station_info),
-            file_station=self.file_station, file_station_kind=self.file_station_kind,
-            scan_index=pick(self.scan_index), scan_stations=list(self.scan_stations),
-            stations=self.stations, stations_z_known=self.stations_z_known, times=pick(self.times),
+            points=self.points[idx],
+            normals=pick(self.normals),
+            colours=pick(self.colours),
+            intensity=pick(self.intensity),
+            hits=pick(self.hits),
+            source=self.source,
+            n_input=self.n_input,
+            n_dropped=self.n_dropped,
+            station=self.station,
+            station_source=self.station_source,
+            station_info=dict(self.station_info),
+            file_station=self.file_station,
+            file_station_kind=self.file_station_kind,
+            scan_index=pick(self.scan_index),
+            scan_stations=list(self.scan_stations),
+            stations=self.stations,
+            stations_z_known=self.stations_z_known,
+            times=pick(self.times),
         )
 
     def station_rows(self) -> tuple[np.ndarray, np.ndarray] | None:
@@ -356,9 +370,7 @@ class Room:
             "walls": self.walls,
             "support": round(self.support, 3),
             "bridged_m": round(self.bridged_m, 3),
-            "bridged_share": (
-                round(self.bridged_m / self.perimeter_m, 3) if self.perimeter_m else 0.0
-            ),
+            "bridged_share": (round(self.bridged_m / self.perimeter_m, 3) if self.perimeter_m else 0.0),
             "closure_gaps": self.closure_gaps,
             "derivation": self.derivation,
             "possible_partition": bool(self.partition_lines),
@@ -500,8 +512,9 @@ class Wall:
         note = ""
         t = self.thickness
         if not t or t <= 0:
-            t, note = EXPORT_THICKNESS_FALLBACK, (
-                f"assumed {EXPORT_THICKNESS_FALLBACK} m at export: the model has no thickness"
+            t, note = (
+                EXPORT_THICKNESS_FALLBACK,
+                (f"assumed {EXPORT_THICKNESS_FALLBACK} m at export: the model has no thickness"),
             )
         if self.pairing == "paired":
             line, body, kind = self.offset, None, "centreline"
@@ -513,10 +526,16 @@ class Wall:
         base = self.base_z if self.base_z is not None else floor_z
         axis = line + (0.0 if body is None else self.body_side * t / 2.0)
         return WallExport(
-            line_a=line * u + self.r0 * v, line_b=line * u + self.r1 * v,
-            axis_a=axis * u + self.r0 * v, axis_b=axis * u + self.r1 * v,
-            body=body, thickness=float(t), thickness_note=note, line=kind,
-            height=float(top - floor_z), base_offset=float(base - floor_z),
+            line_a=line * u + self.r0 * v,
+            line_b=line * u + self.r1 * v,
+            axis_a=axis * u + self.r0 * v,
+            axis_b=axis * u + self.r1 * v,
+            body=body,
+            thickness=float(t),
+            thickness_note=note,
+            line=kind,
+            height=float(top - floor_z),
+            base_offset=float(base - floor_z),
         )
 
     def corner(self, end: str) -> np.ndarray:
@@ -542,8 +561,10 @@ class Wall:
             "top_source": self.top_source,
             "envelope": self.envelope,
             "body_side": self.body_side,
-            "endpoints": [[round(float(ax[0]), 4), round(float(ax[1]), 4)],
-                          [round(float(bx[0]), 4), round(float(bx[1]), 4)]],
+            "endpoints": [
+                [round(float(ax[0]), 4), round(float(ax[1]), 4)],
+                [round(float(bx[0]), 4), round(float(bx[1]), 4)],
+            ],
             "faces": [round(f.offset, 4) for f in self.faces],
             "openings": [o.to_dict() for o in self.openings],
             "joins": {k: j.to_dict() for k, j in self.joins.items()},
@@ -587,7 +608,8 @@ class Model:
             "single_sided": len(single),
             "wall_run_m": round(sum(w.length for w in self.walls), 2),
             "unjoined_ends": sum(len(w.unjoined) for w in self.walls),
-            "station": None if self.cloud is None or self.cloud.station is None
+            "station": None
+            if self.cloud is None or self.cloud.station is None
             else [round(float(v), 3) for v in self.cloud.station],
             "station_source": None if self.cloud is None else self.cloud.station_source,
             "station_info": None if self.cloud is None else self.cloud.station_info,

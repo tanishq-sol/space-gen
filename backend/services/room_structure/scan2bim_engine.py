@@ -47,8 +47,9 @@ def _wall_confidence(w) -> float:
     return WALL_CONFIDENCE["single-sided"]
 
 
-def scene_points(positions: np.ndarray, opacity: np.ndarray | None, opts: RoomStructureOptions,
-                 result: RoomStructureResult) -> np.ndarray:
+def scene_points(
+    positions: np.ndarray, opacity: np.ndarray | None, opts: RoomStructureOptions, result: RoomStructureResult
+) -> np.ndarray:
     """Usable splat positions in the scene frame, cropped to the legacy outline."""
     pts = np.asarray(positions, dtype=np.float64).reshape(-1, 3)
     keep = np.isfinite(pts).all(axis=1)
@@ -62,8 +63,14 @@ def scene_points(positions: np.ndarray, opacity: np.ndarray | None, opts: RoomSt
     outline = np.asarray(result.interpretation.outline, dtype=np.float64)
     lo, hi = outline.min(axis=0) - CROP_MARGIN, outline.max(axis=0) + CROP_MARGIN
     h = result.interpretation.ceilingHeight
-    inside = ((q[:, 0] >= lo[0]) & (q[:, 0] <= hi[0]) & (q[:, 2] >= lo[1]) & (q[:, 2] <= hi[1])
-              & (q[:, 1] > -0.3) & (q[:, 1] < h + 0.3))
+    inside = (
+        (q[:, 0] >= lo[0])
+        & (q[:, 0] <= hi[0])
+        & (q[:, 2] >= lo[1])
+        & (q[:, 2] <= hi[1])
+        & (q[:, 1] > -0.3)
+        & (q[:, 1] < h + 0.3)
+    )
     return q[inside]
 
 
@@ -186,11 +193,17 @@ def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpret
             support += max(0.0, min(s1, length) - max(s0, 0.0)) * w.confidence
         covered = min(support, length)
         conf = (covered + INFERRED_CONFIDENCE * max(length - support, 0.0)) / length
-        walls.append(WallInterpretation(
-            id=f"wall_{k}", start=(float(a[0]), 0.0, float(a[1])), end=(float(b[0]), 0.0, float(b[1])),
-            height=interp.ceilingHeight, thickness=interp.walls[0].thickness,
-            confidence=float(np.clip(conf, 0.05, 1.0)), provenance="auto",
-        ))
+        walls.append(
+            WallInterpretation(
+                id=f"wall_{k}",
+                start=(float(a[0]), 0.0, float(a[1])),
+                end=(float(b[0]), 0.0, float(b[1])),
+                height=interp.ceilingHeight,
+                thickness=interp.walls[0].thickness,
+                confidence=float(np.clip(conf, 0.05, 1.0)),
+                provenance="auto",
+            )
+        )
 
     openings: list[OpeningInterpretation] = []
     by_id = {w.id: (p, q) for p, q, w in old_walls}
@@ -206,8 +219,9 @@ def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpret
                 openings.append(o.model_copy(update={"wallId": w.id, "offset": off, "width": min(o.width, length)}))
                 break
     stats["openingsDropped"] = len(interp.openings) - len(openings)
-    out = interp.model_copy(update={"outline": [(float(x), float(z)) for x, z in verts],
-                                    "walls": walls, "openings": openings})
+    out = interp.model_copy(
+        update={"outline": [(float(x), float(z)) for x, z in verts], "walls": walls, "openings": openings}
+    )
     return out, {**stats, "kept": "regularized"}
 
 
@@ -232,10 +246,14 @@ def enrich_walls(interp: RoomInterpretation, model, floor: float, detect_opening
         w, cover = hit
         matched += 1
         measured = w.pairing == "paired" or not (w.thickness_source or "").startswith("assumed")
-        walls.append(wall.model_copy(update={
-            "thickness": float(max(w.thickness, 0.02)) if measured and w.thickness else wall.thickness,
-            "confidence": float(max(wall.confidence, _wall_confidence(w) * min(1.0, 0.5 + cover))),
-        }))
+        walls.append(
+            wall.model_copy(
+                update={
+                    "thickness": float(max(w.thickness, 0.02)) if measured and w.thickness else wall.thickness,
+                    "confidence": float(max(wall.confidence, _wall_confidence(w) * min(1.0, 0.5 + cover))),
+                }
+            )
+        )
         if not detect_openings:
             continue
         d = (b - a) / max(float(np.linalg.norm(b - a)), 1e-9)
@@ -251,20 +269,37 @@ def enrich_walls(interp: RoomInterpretation, model, floor: float, detect_opening
                 continue
             # the same opening read by the legacy detector: its edges are finer (0.2 m
             # columns here), so it is kept, confirmed, with the higher confidence
-            twin = next((k for k, x in enumerate(legacy) if k not in confirmed and
-                         min(x.offset + x.width / 2, off + o.width / 2) - max(x.offset - x.width / 2, off - o.width / 2)
-                         >= 0.5 * min(x.width, o.width)), None)
+            twin = next(
+                (
+                    k
+                    for k, x in enumerate(legacy)
+                    if k not in confirmed
+                    and min(x.offset + x.width / 2, off + o.width / 2) - max(x.offset - x.width / 2, off - o.width / 2)
+                    >= 0.5 * min(x.width, o.width)
+                ),
+                None,
+            )
             kind = o.kind if o.kind in ("door", "window") else "opening"
             conf = OPENING_CONFIDENCE.get(o.source or "void", 0.5) * (1.0 if kind != "opening" else 0.6)
             if twin is not None:
                 confirmed.add(twin)
-                openings.append(legacy[twin].model_copy(update={"confidence": float(max(legacy[twin].confidence, conf))}))
+                openings.append(
+                    legacy[twin].model_copy(update={"confidence": float(max(legacy[twin].confidence, conf))})
+                )
                 continue
-            openings.append(OpeningInterpretation(
-                id=f"{wall.id}_opening_{j}", wallId=wall.id, kind=kind, offset=off,
-                width=float(min(o.width, length)), height=oh, sill=sill,
-                confidence=float(conf), provenance="auto",
-            ))
+            openings.append(
+                OpeningInterpretation(
+                    id=f"{wall.id}_opening_{j}",
+                    wallId=wall.id,
+                    kind=kind,
+                    offset=off,
+                    width=float(min(o.width, length)),
+                    height=oh,
+                    sill=sill,
+                    confidence=float(conf),
+                    provenance="auto",
+                )
+            )
     return walls, openings, matched
 
 
@@ -303,7 +338,8 @@ def analyze_room_scan2bim(
         return base
     if len(model.walls) < MIN_WALLS or model.levels is None:
         base.diagnostics.setdefault("notes", []).append(
-            f"scan2bim found {len(model.walls)} walls (< {MIN_WALLS}); legacy walls kept")
+            f"scan2bim found {len(model.walls)} walls (< {MIN_WALLS}); legacy walls kept"
+        )
         return base
 
     interp, outline_stats = regularize_outline(base.interpretation, model)
@@ -314,8 +350,11 @@ def analyze_room_scan2bim(
         result_interp = merge_external_openings(result_interp, opening_detector(result_interp))
     diagnostics = dict(base.diagnostics)
     diagnostics["engine"] = "scan2bim"
-    diagnostics["outline"] = {**diagnostics.get("outline", {}), "vertices": len(interp.outline),
-                              "regularization": outline_stats}
+    diagnostics["outline"] = {
+        **diagnostics.get("outline", {}),
+        "vertices": len(interp.outline),
+        "regularization": outline_stats,
+    }
     diagnostics["scan2bim"] = {
         "walls": len(model.walls),
         "wallsMatched": matched,

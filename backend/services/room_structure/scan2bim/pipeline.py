@@ -54,8 +54,7 @@ def run_pipeline(
     if until > LAST_BUILT:
         missing = [f"{k} ({STAGES[k][0]})" for k in range(LAST_BUILT + 1, until + 1)]
         raise NotImplementedError(
-            f"stage {until} is designed but not built. Not built: {', '.join(missing)}. "
-            f"Run with --until {LAST_BUILT}."
+            f"stage {until} is designed but not built. Not built: {', '.join(missing)}. Run with --until {LAST_BUILT}."
         )
 
     model = Model()
@@ -85,8 +84,13 @@ def run_pipeline(
             model.meta["source_hash"] = cloudmod.source_hash(path)
             loaded = cloudmod.load(path, config)
         loaded = cloudmod.voxel_trim(loaded, config)
-        cloudmod.establish_station(loaded, config.station, height=config.station_ground,
-                                   force=config.station_force, pose_height=config.scan_pose_ground)
+        cloudmod.establish_station(
+            loaded,
+            config.station,
+            height=config.station_ground,
+            force=config.station_force,
+            pose_height=config.scan_pose_ground,
+        )
         model.meta["decimate_m"] = config.decimate
         model.meta["points_read"] = loaded.n_input
         model.meta["points_dropped"] = loaded.n_dropped
@@ -104,6 +108,7 @@ def run_pipeline(
         timed(stage, label, lambda m=module: m.run(model, config))  # type: ignore[union-attr]
 
     if config.multi_storey and until >= 2 and model.levels is not None and model.cloud is not None:
+
         def storeys() -> None:
             from .stages.s1_faces import find_storeys
 
@@ -115,8 +120,15 @@ def run_pipeline(
                 top = floors[k + 1] - 0.05 if k + 1 < len(floors) else np.inf
                 keep = (model.cloud.points[:, 2] > f - 0.30) & (model.cloud.points[:, 2] < top)
                 sub = Model()
-                sub.meta = {**{k2: v for k2, v in model.meta.items() if k2 in ("source", "source_hash", "converter", "units", "up_axis", "decimate_m")},
-                            "storey_of": model.meta.get("source"), "storey_floor_hint": round(f, 3)}
+                sub.meta = {
+                    **{
+                        k2: v
+                        for k2, v in model.meta.items()
+                        if k2 in ("source", "source_hash", "converter", "units", "up_axis", "decimate_m")
+                    },
+                    "storey_of": model.meta.get("source"),
+                    "storey_floor_hint": round(f, 3),
+                }
                 sub.cloud = model.cloud.take(keep)
                 cfg_k = config.with_(floor_hint=float(f), multi_storey=False)
                 try:
@@ -124,7 +136,8 @@ def run_pipeline(
                         STAGES[stage][1].run(sub, cfg_k)  # type: ignore[union-attr]
                 except Exception as exc:  # noqa: BLE001 - one storey failing costs that storey
                     model.meta.setdefault("storeys_skipped", []).append(
-                        {"floor_z": round(f, 3), "why": f"{type(exc).__name__}: {exc}"[:200]})
+                        {"floor_z": round(f, 3), "why": f"{type(exc).__name__}: {exc}"[:200]}
+                    )
                     continue
                 if not sub.walls:
                     model.meta.setdefault("storeys_skipped", []).append({"floor_z": round(f, 3), "why": "no walls"})

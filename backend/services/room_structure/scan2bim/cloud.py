@@ -18,7 +18,6 @@ fails with a sentence rather than an ImportError traceback.
 from __future__ import annotations
 
 import hashlib
-import math
 import os
 from pathlib import Path
 
@@ -44,10 +43,7 @@ def load(path: str | os.PathLike, cfg: Config = Config()) -> Cloud:
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix not in SUPPORTED:
-        raise ValueError(
-            f"{path.name}: unsupported input. Expected one of "
-            f"{', '.join(sorted(SUPPORTED))}."
-        )
+        raise ValueError(f"{path.name}: unsupported input. Expected one of {', '.join(sorted(SUPPORTED))}.")
 
     if suffix == ".npz":
         cloud = _load_npz(path)
@@ -155,8 +151,7 @@ def _load_e57(path: Path, voxel: float = 0.0, chunk_size: int = 5_000_000) -> Cl
         import pye57  # type: ignore
     except ImportError as exc:  # pragma: no cover - depends on the machine
         raise RuntimeError(
-            "E57 input needs the optional 'pye57' package: "
-            "pip install pye57. It wraps libE57Format and is free."
+            "E57 input needs the optional 'pye57' package: pip install pye57. It wraps libE57Format and is free."
         ) from exc
 
     scan = pye57.E57(str(path))
@@ -166,8 +161,7 @@ def _load_e57(path: Path, voxel: float = 0.0, chunk_size: int = 5_000_000) -> Cl
     for i, h in enumerate(headers):
         if not set(_XYZ) <= set(h.point_fields):
             raise ValueError(
-                f"{path.name}: scan {i} has no cartesian coordinates; "
-                "spherical-only E57 files are not supported yet"
+                f"{path.name}: scan {i} has no cartesian coordinates; spherical-only E57 files are not supported yet"
             )
     colour = all(set(_RGB) <= set(h.point_fields) for h in headers)
     intensity = all("intensity" in h.point_fields for h in headers)
@@ -196,8 +190,12 @@ def _load_e57(path: Path, voxel: float = 0.0, chunk_size: int = 5_000_000) -> Cl
     if len(cols["points"]) == 0:
         raise ValueError(f"{path.name}: no valid points in the E57")
     cloud = Cloud(
-        points=cols["points"], colours=cols.get("colours"), intensity=cols.get("intensity"),
-        hits=cols.get("hits"), n_input=n_input, n_dropped=n_invalid,
+        points=cols["points"],
+        colours=cols.get("colours"),
+        intensity=cols.get("intensity"),
+        hits=cols.get("hits"),
+        n_input=n_input,
+        n_dropped=n_invalid,
         scan_index=cols.get("scan") if scan.scan_count > 1 else None,
     )
     # A single scan's pose is offered as the station, to be checked by
@@ -215,7 +213,8 @@ def _load_e57(path: Path, voxel: float = 0.0, chunk_size: int = 5_000_000) -> Cl
         # reference scan. (Not applied to a single scan: a pose-less single scan is
         # usually a merged export whose origin means nothing.)
         cloud.scan_stations = [
-            (np.asarray(h.translation, dtype=np.float64).reshape(3), "E57 pose") if h.has_pose()
+            (np.asarray(h.translation, dtype=np.float64).reshape(3), "E57 pose")
+            if h.has_pose()
             else (np.zeros(3), "E57 no pose: sensor at the file origin")
             for h in headers
         ]
@@ -310,15 +309,22 @@ def _load_ascii(path: Path, voxel: float = 0.0, chunk_bytes: int = 64 << 20, kee
                 body, tail = data[:cut], data[cut:]
             if body.strip():
                 try:
-                    arr = np.loadtxt(io.BytesIO(body), delimiter=delim, usecols=range(ncol), ndmin=2,
-                                     dtype=np.float64, comments="#")
+                    arr = np.loadtxt(
+                        io.BytesIO(body), delimiter=delim, usecols=range(ncol), ndmin=2, dtype=np.float64, comments="#"
+                    )
                 except ValueError:
                     if not eof:
                         raise
                     # an incomplete last line: keep every complete one, count the rest
                     lines = body.rstrip().splitlines()
-                    arr = np.loadtxt(io.BytesIO(b"\n".join(lines[:-1])), delimiter=delim,
-                                     usecols=range(ncol), ndmin=2, dtype=np.float64, comments="#")
+                    arr = np.loadtxt(
+                        io.BytesIO(b"\n".join(lines[:-1])),
+                        delimiter=delim,
+                        usecols=range(ncol),
+                        ndmin=2,
+                        dtype=np.float64,
+                        comments="#",
+                    )
                     n_bad += 1
                 n_input += len(arr)
                 ok = np.isfinite(arr[:, :3]).all(1)
@@ -349,19 +355,27 @@ def _load_ascii(path: Path, voxel: float = 0.0, chunk_bytes: int = 64 << 20, kee
         cols = {"points": np.empty((0, 3))}
     if len(cols["points"]) == 0:
         raise ValueError(f"{path.name}: no valid points")
-    return Cloud(points=cols["points"], colours=cols.get("colours"), intensity=cols.get("intensity"),
-                 hits=cols.get("hits"), times=cols.get("time"),
-                 n_input=n_input, n_dropped=n_bad)
+    return Cloud(
+        points=cols["points"],
+        colours=cols.get("colours"),
+        intensity=cols.get("intensity"),
+        hits=cols.get("hits"),
+        times=cols.get("time"),
+        n_input=n_input,
+        n_dropped=n_bad,
+    )
 
 
 def _quat_matrix(q: np.ndarray) -> np.ndarray:
     """Rotation matrix of an E57 quaternion (w, x, y, z)."""
     w, x, y, z = q / np.linalg.norm(q)
-    return np.array([
-        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
-    ])
+    return np.array(
+        [
+            [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+        ]
+    )
 
 
 def _limits(header, group: str, names: tuple[str, ...]) -> tuple[float, float] | None:
@@ -438,7 +452,11 @@ class VoxelAccumulator:
     merged when they pass `compact_at` or twice the last merged size.
     """
 
-    FIRSTS = ("normals", "scan", "time")  # a voxel's scan: the earliest that saw it — any observer is a true line of sight
+    FIRSTS = (
+        "normals",
+        "scan",
+        "time",
+    )  # a voxel's scan: the earliest that saw it — any observer is a true line of sight
 
     def __init__(self, voxel: float, compact_at: int = 20_000_000):
         if voxel <= 0:
@@ -472,8 +490,11 @@ class VoxelAccumulator:
         # re-thinned cloud stays where it was (review 2026-11-01: they were summed
         # unweighted and divided by the summed hits, pulling them toward the origin)
         w = None if hits is None else counts.astype(np.float64)
-        sums = {k: (v if w is None else v * (w if v.ndim == 1 else w[:, None]))
-                for k, v in cols.items() if k not in self.FIRSTS}
+        sums = {
+            k: (v if w is None else v * (w if v.ndim == 1 else w[:, None]))
+            for k, v in cols.items()
+            if k not in self.FIRSTS
+        }
         firsts = {k: v for k, v in cols.items() if k in self.FIRSTS}
         part = _reduce(keys, sums, firsts, counts)
         self.parts.append(part)
@@ -549,9 +570,7 @@ def _load_las(path: Path, keep_time: bool = False) -> Cloud:
     try:
         import laspy  # type: ignore
     except ImportError as exc:  # pragma: no cover - depends on the machine
-        raise RuntimeError(
-            "LAS/LAZ input needs the optional 'laspy' package: pip install laspy"
-        ) from exc
+        raise RuntimeError("LAS/LAZ input needs the optional 'laspy' package: pip install laspy") from exc
 
     las = laspy.read(str(path))
     points = np.c_[np.asarray(las.x), np.asarray(las.y), np.asarray(las.z)].astype(np.float64)
@@ -715,10 +734,7 @@ def establish_station(
         if not given_ok:
             notes.append("used anyway because of --station-force")
         if file_ok and float(np.linalg.norm(g - fs)) > conflict_m:
-            notes.append(
-                f"overrides the file station ({kind}) {_xyz(fs)}, "
-                f"{float(np.linalg.norm(g - fs)):.2f} m away"
-            )
+            notes.append(f"overrides the file station ({kind}) {_xyz(fs)}, {float(np.linalg.norm(g - fs)):.2f} m away")
     elif file_ok:
         station, used, check, ok = fs, "file", file_check, True
         if g is not None:
@@ -772,13 +788,21 @@ def _establish_trajectory(cloud: Cloud, given, margin: float = 1.0, min_inside: 
     covered = float(np.mean(cloud.scan_index >= 0)) if cloud.scan_index is not None else 0.0
     ok = inside >= min_inside and covered > 0
     if not ok:
-        notes.append(f"trajectory rejected: {inside:.0%} of its stations inside the cloud, "
-                     f"{covered:.0%} of points timed within it")
+        notes.append(
+            f"trajectory rejected: {inside:.0%} of its stations inside the cloud, "
+            f"{covered:.0%} of points timed within it"
+        )
         cloud.stations, cloud.scan_index = None, None
     cloud.station = None
-    cloud.station_info = {"used": "trajectory" if ok else "none", "kind": cloud.file_station_kind,
-                          "stations": 0 if st is None else len(st), "stations_inside": round(inside, 3),
-                          "points_with_station": round(covered, 3), "heights_trusted": False, "notes": notes}
+    cloud.station_info = {
+        "used": "trajectory" if ok else "none",
+        "kind": cloud.file_station_kind,
+        "stations": 0 if st is None else len(st),
+        "stations_inside": round(inside, 3),
+        "points_with_station": round(covered, 3),
+        "heights_trusted": False,
+        "notes": notes,
+    }
     head = f"{cloud.file_station_kind}: {covered:.0%} of points timed on it" if ok else "unknown"
     cloud.station_source = "; ".join([head, *notes])
 
@@ -797,10 +821,15 @@ def _establish_per_scan(cloud: Cloud, given, height: tuple[float, float]) -> Non
         else:
             ok, check = _check_station(cloud, np.asarray(xyz, dtype=np.float64), height)
         rows.append(np.asarray(xyz, dtype=np.float64) if ok else np.full(3, np.nan))
-        scans.append({
-            "scan": i, "kind": kind, "offered": None if xyz is None else [round(float(v), 3) for v in xyz],
-            "check": check, "check_passed": ok,
-        })
+        scans.append(
+            {
+                "scan": i,
+                "kind": kind,
+                "offered": None if xyz is None else [round(float(v), 3) for v in xyz],
+                "check": check,
+                "check_passed": ok,
+            }
+        )
         if not ok:
             notes.append(f"scan {i} ({kind}) has no usable station: {check}")
     if given is not None:

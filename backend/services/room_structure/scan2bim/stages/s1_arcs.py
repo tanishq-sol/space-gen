@@ -74,7 +74,7 @@ def _votes(xy: np.ndarray, n: np.ndarray, cfg: Config, lo: np.ndarray, shape: tu
     radii = np.arange(cfg.arc_min_radius, cfg.arc_max_radius, cell / 2)
     acc = np.zeros(shape[0] * shape[1], np.int64)
     for i in range(0, len(xy), 4000):
-        p, d = xy[i:i + 4000], n[i:i + 4000]
+        p, d = xy[i : i + 4000], n[i : i + 4000]
         for sign in (1.0, -1.0):
             c = p[:, None, :] + sign * radii[None, :, None] * d[:, None, :]
             ij = np.floor((c - lo) / cell).astype(np.int64)
@@ -186,10 +186,23 @@ def _chords(f: Face, centre: np.ndarray, r_ref: float, theta0: float, step: floa
         def inside(gaps, ra=ra, rb=rb, to_world=to_world):
             return [tuple(sorted((to_world(g0), to_world(g1)))) for g0, g1 in gaps if ra <= g0 and g1 <= rb]
 
-        out.append(replace(f, direction=d, offset=offset, k=0.0, c=offset, r0=min(q0, q1), r1=max(q0, q1),
-                           length=length, points=int(round(f.points * length / max(f.length, 1e-9))),
-                           facing=f.facing * same, openings=[], bridged=inside(f.bridged),
-                           pier_bridged=inside(f.pier_bridged)))
+        out.append(
+            replace(
+                f,
+                direction=d,
+                offset=offset,
+                k=0.0,
+                c=offset,
+                r0=min(q0, q1),
+                r1=max(q0, q1),
+                length=length,
+                points=int(round(f.points * length / max(f.length, 1e-9))),
+                facing=f.facing * same,
+                openings=[],
+                bridged=inside(f.bridged),
+                pier_bridged=inside(f.pier_bridged),
+            )
+        )
     return out
 
 
@@ -203,8 +216,17 @@ def _pair(f: Face, g: Face, cfg: Config) -> bool:
     return cfg.pair_min_thickness <= abs(f.offset_at(mid) - g.offset_at(mid)) <= cfg.pair_max_thickness
 
 
-def arc_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], cfg: Config, floor_z: float | None,
-              ceilings, stations=None, scan=None, rejected: list[dict] | None = None) -> tuple[list[Face], dict]:
+def arc_faces(
+    band: np.ndarray,
+    normals: np.ndarray,
+    faces: list[Face],
+    cfg: Config,
+    floor_z: float | None,
+    ceilings,
+    stations=None,
+    scan=None,
+    rejected: list[dict] | None = None,
+) -> tuple[list[Face], dict]:
     from .s1_faces import find_faces  # local import: s1_faces calls this module
     from .s1_local import _explained, _trim
 
@@ -247,12 +269,23 @@ def arc_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], cfg: Con
         st = None
         if stations is not None:
             sd = stations[:, :2] - c
-            st = np.c_[np.hypot(sd[:, 0], sd[:, 1]), ((np.arctan2(sd[:, 1], sd[:, 0]) - theta0) % (2 * np.pi)) * r_ref,
-                       stations[:, 2]]
+            st = np.c_[
+                np.hypot(sd[:, 0], sd[:, 1]),
+                ((np.arctan2(sd[:, 1], sd[:, 0]) - theta0) % (2 * np.pi)) * r_ref,
+                stations[:, 2],
+            ]
         rej: list[dict] = []
-        got = find_faces(unrolled, un_normals, 0.0, cfg, floor_z=floor_z,
-                         ceilings=None if ceilings is None else _UnrolledCeilings(ceilings, c, r_ref, theta0),
-                         rejected=rej, stations=st, scan=None if scan is None else scan[pick])
+        got = find_faces(
+            unrolled,
+            un_normals,
+            0.0,
+            cfg,
+            floor_z=floor_z,
+            ceilings=None if ceilings is None else _UnrolledCeilings(ceilings, c, r_ref, theta0),
+            rejected=rej,
+            stations=st,
+            scan=None if scan is None else scan[pick],
+        )
         if rejected is not None:
             rejected += [{**x, "pass": "arc", "centre": [round(float(c[0]), 2), round(float(c[1]), 2)]} for x in rej]
         # an arc must be long enough for its curve to be measured: over sqrt(8 R trim) a
@@ -268,9 +301,13 @@ def arc_faces(band: np.ndarray, normals: np.ndarray, faces: list[Face], cfg: Con
         # one angle step for every face of this centre: the smallest radius sags most
         rho_min = min(min(f.offset_at(f.r0), f.offset_at(f.r1)) for f in got)
         step = 2 * math.acos(max(1.0 - cfg.arc_chord_sag / max(rho_min, 1e-6), -1.0))
-        stats["circles"].append({"centre": [round(float(c[0]), 2), round(float(c[1]), 2)],
-                                 "faces": sorted([round(f.offset, 2), round(f.length, 1)] for f in got),
-                                 "arc_m": round(sum(f.length for f in got), 1)})
+        stats["circles"].append(
+            {
+                "centre": [round(float(c[0]), 2), round(float(c[1]), 2)],
+                "faces": sorted([round(f.offset, 2), round(f.length, 1)] for f in got),
+                "arc_m": round(sum(f.length for f in got), 1),
+            }
+        )
         stats["faces"] += len(got)
         for f in got:
             found += _chords(f, c, r_ref, theta0, step)

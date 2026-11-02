@@ -11,7 +11,7 @@ import json
 import threading
 from collections import OrderedDict
 from pathlib import Path
-from typing import Literal, Annotated, Any, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
