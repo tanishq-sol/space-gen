@@ -110,18 +110,22 @@ AXIS_TOL_DEG = 10.0
 OUTLINE_MIN_KEPT = 0.95
 OUTLINE_MAX_ADDED = 0.30
 INFERRED_CONFIDENCE = 0.3  # wall stretch behind furniture, with no legacy edge on it
+LINE_SAME = 0.15  # m: a parallel line this close to a kept one is the same wall (no sliver walls)
+MIN_EDGE = 0.3  # m: shorter outline edges are folded into their neighbours, as the legacy outline
 
 
 def _lines(interp: RoomInterpretation, model) -> list[tuple[np.ndarray, np.ndarray]]:
-    """Wall lines as (point, unit direction) in scene (x, z)."""
+    """Wall lines as (point, unit direction) in scene (x, z): scan2bim's measured faces
+    first, longest first, then the legacy edges, longest first. A line parallel to one
+    already kept and within LINE_SAME of it is the same wall and is skipped."""
     outline = np.asarray(interp.outline, dtype=np.float64)
     centre = outline.mean(axis=0)
-    lines: list[tuple[np.ndarray, np.ndarray]] = []
+    candidates: list[tuple[float, np.ndarray, np.ndarray]] = []  # (priority, point, direction)
     for w in model.walls:
         u = np.array([w.unit[0], -w.unit[1]])  # scan2bim (X, Y) -> scene (x, z = -Y)
         v = np.array([w.perp[0], -w.perp[1]])
         face = min(w.plane_offsets(), key=lambda o: abs(o - float(centre @ u)))  # the room side
-        lines.append((face * u + (w.r0 + w.r1) / 2 * v, v))
+        candidates.append((1e6 + abs(w.r1 - w.r0), face * u + (w.r0 + w.r1) / 2 * v, v))
     for wall in interp.walls:
         a, b = np.array([wall.start[0], wall.start[2]]), np.array([wall.end[0], wall.end[2]])
         length = float(np.linalg.norm(b - a))
@@ -131,12 +135,48 @@ def _lines(interp: RoomInterpretation, model) -> list[tuple[np.ndarray, np.ndarr
         off_axis = abs(((np.degrees(np.arctan2(d[1], d[0])) + 45.0) % 90.0) - 45.0)
         if off_axis > AXIS_TOL_DEG and length < LINE_MIN_OTHER:
             continue
+        candidates.append((length, a, d))
+    lines: list[tuple[np.ndarray, np.ndarray]] = []
+    for _, a, d in sorted(candidates, key=lambda c: -c[0]):
         n = np.array([-d[1], d[0]])
-        # the same wall as a scan2bim line: the measured face wins
-        if any(abs(float(dd @ d)) > np.cos(np.radians(3.0)) and abs(float((p - a) @ n)) < 0.1 for p, dd in lines):
+        if any(abs(float(dd @ d)) > np.cos(np.radians(3.0)) and abs(float((p - a) @ n)) < LINE_SAME for p, dd in lines):
             continue
         lines.append((a, d))
     return lines
+
+
+def _fold_short_edges(verts: np.ndarray) -> np.ndarray:
+    """Outline vertices without edges shorter than MIN_EDGE: a short edge between two
+    crossing neighbours goes to their intersection; a jog between two parallel ones
+    moves the shorter neighbour onto the longer one's line."""
+    v = [np.asarray(p, dtype=np.float64) for p in verts]
+    while len(v) > 3:
+        lengths = [float(np.linalg.norm(v[(i + 1) % len(v)] - v[i])) for i in range(len(v))]
+        i = int(np.argmin(lengths))
+        if lengths[i] >= MIN_EDGE:
+            break
+        n = len(v)
+        a, b = v[(i - 1) % n], v[i]  # the edge before
+        c, d = v[(i + 1) % n], v[(i + 2) % n]  # the edge after
+        u1, u2 = (b - a) / max(np.linalg.norm(b - a), 1e-9), (d - c) / max(np.linalg.norm(d - c), 1e-9)
+        n1, n2 = np.array([-u1[1], u1[0]]), np.array([-u2[1], u2[0]])
+        corner = _intersect_lines(n1, float(n1 @ a), n2, float(n2 @ c))
+        if corner is None:  # a jog: the shorter neighbour moves onto the longer one's line
+            if np.linalg.norm(b - a) >= np.linalg.norm(d - c):
+                v[(i + 2) % n] = d + n1 * (float(n1 @ a) - float(n1 @ d))
+            else:
+                v[(i - 1) % n] = a + n2 * (float(n2 @ c) - float(n2 @ a))
+        else:
+            v[i] = corner
+        del v[(i + 1) % n]
+    return np.array(v)
+
+
+def _intersect_lines(n1: np.ndarray, c1: float, n2: np.ndarray, c2: float) -> np.ndarray | None:
+    det = n1[0] * n2[1] - n1[1] * n2[0]
+    if abs(det) < np.sin(np.radians(10.0)):
+        return None
+    return np.array([(c1 * n2[1] - c2 * n1[1]) / det, (n1[0] * c2 - n2[0] * c1) / det])
 
 
 def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpretation, dict]:
@@ -145,8 +185,7 @@ def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpret
     furniture hides the floor along a wall lies in a cell that is mostly floor, so it is
     filled; corners then sit on wall-line intersections. Kept only when it has fewer
     corners, keeps OUTLINE_MIN_KEPT of the floor outline and adds at most OUTLINE_MAX_ADDED.
-    One wall per edge (the
-    editor's contract); legacy openings move to the edge they lie on."""
+    One wall per edge (the editor's contract); legacy openings move to the edge they lie on."""
     from shapely.geometry import LineString, Polygon, box
     from shapely.geometry.polygon import orient
     from shapely.ops import polygonize, unary_union
@@ -169,6 +208,9 @@ def regularize_outline(interp: RoomInterpretation, model) -> tuple[RoomInterpret
     if new.is_empty or new.geom_type != "Polygon":
         return interp, {**stats, "kept": "legacy (no cells)"}
     new = orient(Polygon(new.exterior).simplify(0.02), sign=1.0)  # CCW in (x, z), as the analyzer
+    new = Polygon(_fold_short_edges(np.asarray(new.exterior.coords)[:-1]))
+    if not new.is_valid or new.area <= 0:
+        return interp, {**stats, "kept": "legacy (invalid after folding short edges)"}
     verts = np.asarray(new.exterior.coords)[:-1]
     both = float(new.intersection(old).area)
     kept, added = both / old.area, (new.area - both) / old.area
