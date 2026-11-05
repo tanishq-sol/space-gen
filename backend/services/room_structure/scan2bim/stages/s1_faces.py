@@ -113,6 +113,63 @@ def _slab_pairs(planes: list[Plane], cfg: Config) -> list[SlabPair]:
     return pairs
 
 
+def covered_share(p: Plane, planes: list[Plane], rise: tuple[float, float]) -> float:
+    """Share of `p`'s cells under any plane `rise[0]`-`rise[1]` m above it."""
+    above = [q.cells for q in planes if rise[0] <= q.z_fit - p.z_fit <= rise[1]]
+    if not above or len(p.cells) == 0:
+        return 0.0
+
+    def keys(c: np.ndarray) -> np.ndarray:
+        return c[:, 0].astype(np.int64) * 1_000_003 + c[:, 1]
+
+    return float(np.isin(keys(p.cells), keys(np.concatenate(above))).mean())
+
+
+def walls_standing(cloud: Cloud, planes: list[Plane], origin: np.ndarray, cfg: Config = Config()) -> list[int]:
+    """For each plane, the vertical returns (|n_z| < 0.25) `storey_wall_band` above it that
+    lie inside its own footprint grown `storey_wall_reach`: the walls standing on it.
+
+    A floor has the walls of its storey on it. A plane that only looks like one does not:
+    a pit whose walls end at the next level up (Anoeta's -2.53 m, 25 k against 347 k on its
+    real floor 1.3 m higher), a landing, ground outside. `tools/explore_floor_choice.py`
+    prints the same count (`walls_fp`). A plane with no footprint cells counts its band
+    over the whole cloud."""
+    if cloud.normals is None or not planes:
+        return [0] * len(planes)
+    lo_b, hi_b = cfg.storey_wall_band
+    z = cloud.points[:, 2]
+    sel = (
+        (np.abs(cloud.normals[:, 2]) < 0.25)
+        & (z > min(p.z_fit for p in planes) + lo_b)
+        & (z < max(p.z_fit for p in planes) + hi_b)
+    )
+    zall = z[sel]
+    with_cells = [p for p in planes if len(p.cells)]
+    if with_cells:
+        ij = np.floor((cloud.points[sel, :2] - origin) / cfg.level_cell).astype(np.int64)
+        grow = int(round(cfg.storey_wall_reach / cfg.level_cell))
+        allc = np.concatenate([p.cells for p in with_cells]).astype(np.int64)
+        lo = allc.min(0) - grow - 1
+        shape = tuple(int(v) for v in allc.max(0) - lo + grow + 2)
+        ij -= lo
+        ok = (ij >= 0).all(1) & (ij[:, 0] < shape[0]) & (ij[:, 1] < shape[1])
+        pz, ij = zall[ok], ij[ok]
+    del sel
+    out = []
+    for p in planes:
+        if not len(p.cells):
+            out.append(int(((zall > p.z_fit + lo_b) & (zall < p.z_fit + hi_b)).sum()))
+            continue
+        band = (pz > p.z_fit + lo_b) & (pz < p.z_fit + hi_b)
+        m = np.zeros(shape, bool)
+        c = p.cells.astype(np.int64) - lo
+        m[c[:, 0], c[:, 1]] = True
+        if grow:
+            m = ndimage.binary_dilation(m, iterations=grow)
+        out.append(int(m[ij[band, 0], ij[band, 1]].sum()))
+    return out
+
+
 def find_levels(cloud: Cloud, cfg: Config = Config()) -> LevelSet:
     if cloud.normals is None:
         from ..cloud import estimate_normals
@@ -166,11 +223,21 @@ def find_levels(cloud: Cloud, cfg: Config = Config()) -> LevelSet:
         below = [p for p in large if p.z_fit < lowest - cfg.floor_below_station]
         if below:
             pool = below
+    # Round 24: ground outside the building (a mobile scan walks in from the street)
+    # is often the largest, lowest plane; a floor has a ceiling over it.
+    covered = [p for p in pool if covered_share(p, large, cfg.floor_cover_rise) >= cfg.floor_min_covered]
+    if covered:
+        pool = covered
     biggest = max(p.area_m2 for p in pool)
-    floor = min(
-        (p for p in pool if p.area_m2 >= cfg.floor_min_share * biggest),
-        key=lambda p: p.z_fit,
-    )
+    substantial = sorted((p for p in pool if p.area_m2 >= cfg.floor_min_share * biggest), key=lambda p: p.z_fit)
+    floor = substantial[0]
+    if cfg.floor_min_wall_share > 0 and len(substantial) > 1 and cfg.floor_hint is None:
+        # Round 27: the lowest that has walls standing on it. A split-level pit or a
+        # landing is large and covered too, but its walls stop at the level above.
+        standing = walls_standing(cloud, substantial, origin, cfg)
+        best = max(standing)
+        if best > 0:
+            floor = next(p for p, n in zip(substantial, standing) if n >= cfg.floor_min_wall_share * best)
     if cfg.floor_hint is not None:
         # a storey run: its floor was chosen by `find_storeys`, from the whole cloud
         floor = min(large, key=lambda p: abs(p.z_fit - cfg.floor_hint))
@@ -187,7 +254,7 @@ def find_levels(cloud: Cloud, cfg: Config = Config()) -> LevelSet:
     )
 
 
-def find_storeys(cloud: Cloud, levels: LevelSet, cfg: Config = Config()) -> list[float]:
+def find_storeys(cloud: Cloud, levels: LevelSet, cfg: Config = Config(), report: dict | None = None) -> list[float]:
     """Floor heights of every storey the scan shows, bottom to top, the main
     storey's floor (`levels.floor_z`) among them.
 
@@ -207,13 +274,48 @@ def find_storeys(cloud: Cloud, levels: LevelSet, cfg: Config = Config()) -> list
             if abs(floors[-1] - main) > 1e-6:
                 floors[-1] = z  # the slab's upper surface is the floor
             continue
-        if floors and z - floors[-1] < cfg.storey_min_height:
+        if not cfg.storey_by_walls and floors and z - floors[-1] < cfg.storey_min_height:
             continue
         floors.append(z)
     # the main storey's floor is always one of them, exactly
     floors = sorted({f for f in floors if abs(f - main) >= cfg.storey_slab_max} | {main})
     if len(floors) == 1 or cloud.normals is None:
         return [main]
+    if cfg.storey_by_walls:
+        # Round 27: of two floors closer than storey_min_height, the one more walls
+        # stand on is the storey (the other is a platform, a pit, a landing or ground
+        # outside), not always the lower one: Anoeta's real storeys (-1.19, 4.03 m) each
+        # sat 1.2-1.4 m above a wall-less plane and were dropped as its platforms.
+        by_z = {p.z_fit: p for p in levels.planes}
+        planes = [levels.floor if abs(f - main) < 1e-6 else by_z[f] for f in floors]
+        standing = walls_standing(cloud, planes, levels.origin, cfg)
+        base = max(next(n for f, n in zip(floors, standing) if abs(f - main) < 1e-6), 1)
+        ok = [
+            (f, n)
+            for f, n in zip(floors, standing)
+            if abs(f - main) >= cfg.storey_min_height and n >= cfg.storey_min_wall_share * base
+        ]
+        # The compatible set (every two >= storey_min_height apart) with the most walls
+        # standing on it, by dynamic programming on each side of the main floor - not
+        # greedy by count, which lets one strong floor between two real storeys drop
+        # both (review R27-1, Astra). Same choice as greedy on all 11 development scans.
+        kept = [main]
+        for side in ([x for x in ok if x[0] < main], [x for x in ok if x[0] > main]):
+            side.sort()
+            best: list[tuple[int, list[float]]] = []
+            for i, (f, n) in enumerate(side):
+                prev = [best[j] for j in range(i) if f - side[j][0] >= cfg.storey_min_height]
+                b = max(prev, key=lambda t: t[0]) if prev else (0, [])
+                best.append((b[0] + n, b[1] + [f]))
+            if best:
+                kept += max(best, key=lambda t: t[0])[1]
+        if report is not None:  # every candidate floor left out, with its evidence (review R27-2)
+            report["storeys_dropped"] = [
+                {"floor_z": round(f, 3), "walls_standing": n, "share_of_main": round(n / base, 3)}
+                for f, n in zip(floors, standing)
+                if not any(abs(f - k) < 1e-6 for k in kept)
+            ]
+        return sorted(kept)
     vertical = np.abs(cloud.normals[:, 2]) < 0.25
     z = cloud.points[:, 2]
 

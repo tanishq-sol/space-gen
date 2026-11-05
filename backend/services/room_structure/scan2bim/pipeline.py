@@ -38,6 +38,40 @@ class InputRejected(RuntimeError):
     """Stage 0 refused the cloud. Distinct from a crash: the input is wrong."""
 
 
+def seen_area(
+    points: np.ndarray, floor_z: float, band: tuple[float, float] = (0.5, 2.0), cell: float = 0.5
+) -> list[list[list[list[float]]]]:
+    """Plan outline of what the scan saw on a storey: the cells of `cell` m holding a point
+    floor + band[0] .. band[1] (the evaluator's wall band), grown one cell, holes filled.
+    For scoring a scan against a reference that models more than it covers (evaluate's
+    `*_seen` scores, round 25). A list of polygons, each [exterior, *holes] of [x, y]."""
+    from scipy import ndimage
+    from shapely.geometry import MultiPolygon, box
+    from shapely.ops import unary_union
+
+    z = points[:, 2]
+    p = points[(z > floor_z + band[0]) & (z < floor_z + band[1]), :2]
+    if len(p) == 0:
+        return []
+    lo = np.floor(p.min(0) / cell) * cell - cell
+    ij = np.floor((p - lo) / cell).astype(np.int64)
+    g = np.zeros(tuple(ij.max(0) + 2), bool)
+    g[ij[:, 0], ij[:, 1]] = True
+    g = ndimage.binary_fill_holes(ndimage.binary_dilation(g))
+    boxes = []
+    for i in range(g.shape[0]):  # one box per run of a row: far fewer than one per cell
+        edges = np.flatnonzero(np.diff(np.r_[0, g[i].astype(np.int8), 0]))
+        for a, b in zip(edges[::2], edges[1::2]):
+            boxes.append(box(lo[0] + i * cell, lo[1] + a * cell, lo[0] + (i + 1) * cell, lo[1] + b * cell))
+    u = unary_union(boxes).simplify(cell * 0.25)
+    polys = u.geoms if isinstance(u, MultiPolygon) else [u]
+    return [
+        [[[round(x, 3), round(y, 3)] for x, y in r.coords] for r in (q.exterior, *q.interiors)]
+        for q in polys
+        if not q.is_empty
+    ]
+
+
 def run_pipeline(
     input_path,
     out_dir=None,
@@ -83,7 +117,8 @@ def run_pipeline(
         else:
             model.meta["source_hash"] = cloudmod.source_hash(path)
             loaded = cloudmod.load(path, config)
-        loaded = cloudmod.voxel_trim(loaded, config)
+        # a cloud we read is ours to trim in place; a caller's cloud is left untouched
+        loaded = cloudmod.voxel_trim(loaded, config, in_place=cloud is None)
         cloudmod.establish_station(
             loaded,
             config.station,
@@ -106,13 +141,15 @@ def run_pipeline(
         if module is None:
             raise NotImplementedError(f"stage {stage} ({label}) is not built")
         timed(stage, label, lambda m=module: m.run(model, config))  # type: ignore[union-attr]
+    if model.levels is not None and model.cloud is not None:
+        model.meta["seen_area"] = seen_area(model.cloud.points, model.levels.floor_z)
 
     if config.multi_storey and until >= 2 and model.levels is not None and model.cloud is not None:
 
         def storeys() -> None:
             from .stages.s1_faces import find_storeys
 
-            floors = find_storeys(model.cloud, model.levels, config)
+            floors = find_storeys(model.cloud, model.levels, config, report=model.meta)
             model.meta["storey_floors"] = [round(f, 3) for f in floors]
             for k, f in enumerate(floors):
                 if abs(f - model.levels.floor_z) < 1e-6:
@@ -142,6 +179,8 @@ def run_pipeline(
                 if not sub.walls:
                     model.meta.setdefault("storeys_skipped", []).append({"floor_z": round(f, 3), "why": "no walls"})
                     continue
+                if sub.levels is not None:
+                    sub.meta["seen_area"] = seen_area(sub.cloud.points, sub.levels.floor_z)
                 sub.cloud = None  # not kept: the main model holds the cloud
                 model.storeys.append(sub)
 

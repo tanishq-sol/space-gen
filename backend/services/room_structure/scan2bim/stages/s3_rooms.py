@@ -730,6 +730,14 @@ def room_ceiling_alt(model: Model, poly: Polygon, cfg: Config, chosen: float | N
     return z
 
 
+def walled_share(poly: Polygon, walls_near) -> float:
+    """Share of a room outline's length that runs within the given (grown) wall footprints."""
+    ring = poly.exterior
+    if walls_near.is_empty or ring.length <= 0:
+        return 0.0
+    return float(ring.intersection(walls_near).length / ring.length)
+
+
 # --------------------------------------------------------------------------- run
 
 
@@ -740,15 +748,32 @@ def run(model: Model, cfg: Config = Config()) -> None:
 
         extra, fs_stats = free_space_rooms(model, rooms, cfg)
         kept = []
+        walls_near = None  # wall footprints grown by room_fs_walled_reach, built on first use
         for r in extra:
             poly = Polygon(r.polygon)
             r.ceiling_z, r.ceiling_cover = room_ceiling(model, poly, cfg)
             if r.ceiling_z is None and r.ceiling_cover < cfg.room_fs_min_ceiling_cover:
                 # floor at slab level with (nearly) nothing over it: a terrace or yard
                 # seen through a door, not a room (review R4-4). A partly scanned
-                # ceiling is still a ceiling (UoM lost a matched room at "none")
-                fs_stats["rejected_no_ceiling"] = fs_stats.get("rejected_no_ceiling", 0) + 1
-                continue
+                # ceiling is still a ceiling (UoM lost a matched room at "none").
+                # Round 21: unless our walls run along most of its outline - an enclosed
+                # space whose overhead was not scanned (a courtyard or a glazed roof),
+                # kept with its height unknown rather than invented
+                if walls_near is None:
+                    walls_near = (
+                        unary_union([footprint(w).buffer(cfg.room_fs_walled_reach) for w in model.walls])
+                        if model.walls
+                        else Polygon()
+                    )
+                share = walled_share(poly, walls_near)
+                fs_stats.setdefault("no_ceiling", []).append(
+                    {"area_m2": round(poly.area, 1), "walled": round(share, 2)}
+                )
+                if cfg.room_fs_walled_min <= 0 or share < cfg.room_fs_walled_min:
+                    fs_stats["rejected_no_ceiling"] = fs_stats.get("rejected_no_ceiling", 0) + 1
+                    continue
+                r.derivation = "free-space-no-ceiling"
+                fs_stats["kept_walled_no_ceiling"] = fs_stats.get("kept_walled_no_ceiling", 0) + 1
             ring = poly.exterior.buffer(cfg.room_fs_cell * 2.5)
             r.walls = [w.id for w in model.walls if footprint(w).exterior.intersection(ring).length >= 0.25]
             kept.append(r)

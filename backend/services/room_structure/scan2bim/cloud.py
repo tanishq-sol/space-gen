@@ -54,7 +54,7 @@ def load(path: str | os.PathLike, cfg: Config = Config()) -> Cloud:
     elif suffix == ".ptx":
         cloud = _load_ptx(path)
     elif suffix in (".las", ".laz"):
-        cloud = _load_las(path, keep_time=cfg.trajectory is not None)
+        cloud = _load_las(path, voxel=cfg.decimate, keep_time=cfg.trajectory is not None)
     else:
         cloud = _load_open3d(path)
 
@@ -62,7 +62,8 @@ def load(path: str | os.PathLike, cfg: Config = Config()) -> Cloud:
     if not cloud.n_input:
         cloud.n_input = len(cloud.points)
 
-    if cfg.decimate > 0 and suffix != ".e57" and suffix not in ASCII:  # streamed readers decimate as they read
+    streamed = suffix in (".e57", ".las", ".laz") or suffix in ASCII  # these decimate as they read
+    if cfg.decimate > 0 and not streamed:
         cloud = decimate(cloud, cfg.decimate)
     if cloud.normals is None:
         estimate_normals(cloud)
@@ -472,7 +473,9 @@ class VoxelAccumulator:
         ijk = np.floor(points / self.voxel).astype(np.int64)
         if self.base is None:
             self.base = ijk.min(0) if len(ijk) else np.zeros(3, np.int64)
-        rel = ijk - self.base + _BIAS
+        rel = ijk  # shifted in place: no second N x 3 int64 array (2026-11-04)
+        rel -= self.base
+        rel += _BIAS
         if len(rel) and (rel.min() < 0 or rel.max() >= 2 * _BIAS):
             span = 2 * _BIAS * self.voxel / 1000
             raise ValueError(
@@ -497,6 +500,7 @@ class VoxelAccumulator:
         }
         firsts = {k: v for k, v in cols.items() if k in self.FIRSTS}
         part = _reduce(keys, sums, firsts, counts)
+        del keys, counts, w, sums, firsts
         self.parts.append(part)
         self.size += len(part[0])
         if self.size > max(self.compact_at, 2 * self.last):
@@ -504,35 +508,65 @@ class VoxelAccumulator:
 
     def _compact(self) -> None:
         if len(self.parts) > 1:
-            keys = np.concatenate([p[0] for p in self.parts])
-            sums = {k: np.concatenate([p[1][k] for p in self.parts]) for k in self.parts[0][1]}
-            firsts = {k: np.concatenate([p[2][k] for p in self.parts]) for k in self.parts[0][2]}
-            counts = np.concatenate([p[3] for p in self.parts])
-            self.parts = [_reduce(keys, sums, firsts, counts)]
+            # Merged one column at a time, each part's copy dropped once it is joined:
+            # joining every column first held a second copy of the whole kept set and
+            # set the reader's peak (2026-11-04, tools/profile_memory.py: Anoeta's LAZ
+            # peaked at 7.26 GiB here; Astra's cloud run measured 826 -> 681 MiB on 2 M points).
+            parts, self.parts = self.parts, []
+            keys = np.concatenate([p[0] for p in parts])
+            counts = np.concatenate([p[3] for p in parts])
+            self.parts = [_reduce(keys, _Joined(parts, 1), _Joined(parts, 2), counts)]
+            del parts, keys, counts
         self.size = self.last = len(self.parts[0][0]) if self.parts else 0
 
     def result(self) -> dict[str, np.ndarray]:
         self._compact()
         if not self.parts:
             return {"points": np.empty((0, 3))}
-        _, sums, firsts, counts = self.parts[0]
-        out = {k: v / (counts[:, None] if v.ndim == 2 else counts) for k, v in sums.items()}
+        _, sums, firsts, counts = self.parts.pop()
+        out = {}
+        for k in list(sums):
+            v = sums.pop(k)
+            v /= counts[:, None] if v.ndim == 2 else counts  # in place: the sums are ours
+            out[k] = v
         out.update(firsts)
         out["hits"] = counts
+        self.size = self.last = 0
         return out
 
 
+class _Joined:
+    """One kind of column (`idx` 1 sums, 2 firsts) of several parts, joined on demand,
+    one column at a time, each part's copy released as soon as it is joined."""
+
+    def __init__(self, parts: list[tuple], idx: int):
+        self.parts, self.idx = parts, idx
+
+    def items(self):
+        for name in list(self.parts[0][self.idx]):
+            v = np.concatenate([p[self.idx][name] for p in self.parts])
+            for p in self.parts:
+                del p[self.idx][name]
+            yield name, v
+            del v
+
+
 def _reduce(keys, sums, firsts, counts):
-    """Merge rows sharing a key: sum `sums` and `counts`, keep the earliest `firsts`."""
+    """Merge rows sharing a key: sum `sums` and `counts`, keep the earliest `firsts`.
+    `sums`/`firsts` are anything with `.items()`; each column is taken and reduced in
+    turn, so at most one is reordered at a time."""
     order = np.argsort(keys, kind="stable")
     k = keys[order]
     starts = np.flatnonzero(np.r_[True, k[1:] != k[:-1]])
-    return (
-        k[starts],
-        {n: np.add.reduceat(v[order], starts, axis=0) for n, v in sums.items()},
-        {n: v[order][starts] for n, v in firsts.items()},
-        np.add.reduceat(counts[order], starts),
-    )
+    out_k = k[starts]
+    del k
+    out_s = {}
+    for n, v in sums.items():
+        out_s[n] = np.add.reduceat(v[order], starts, axis=0)
+        del v
+    first = order[starts]
+    out_f = {n: v[first] for n, v in firsts.items()}
+    return out_k, out_s, out_f, np.add.reduceat(counts[order], starts)
 
 
 def _load_ptx(path: Path) -> Cloud:
@@ -566,21 +600,59 @@ def _load_ptx(path: Path) -> Cloud:
     return Cloud(points=np.concatenate(blocks).astype(np.float64))
 
 
-def _load_las(path: Path, keep_time: bool = False) -> Cloud:
+def _load_las(path: Path, voxel: float = 0.0, keep_time: bool = False, chunk_size: int = 5_000_000) -> Cloud:
+    """Stream a LAS/LAZ in chunks, reducing to voxel centroids as it goes (as the E57
+    reader does), so a 585 M-point file never sits in memory at full density.
+    Colour is carried when the point format has it; intensity when any point has a
+    non-zero value (Grainger's LAS stores all zeros, which means "not recorded")."""
     try:
         import laspy  # type: ignore
     except ImportError as exc:  # pragma: no cover - depends on the machine
         raise RuntimeError("LAS/LAZ input needs the optional 'laspy' package: pip install laspy") from exc
 
-    las = laspy.read(str(path))
-    points = np.c_[np.asarray(las.x), np.asarray(las.y), np.asarray(las.z)].astype(np.float64)
-    colours = None
-    if hasattr(las, "red"):
-        colours = np.c_[las.red, las.green, las.blue].astype(np.float64) / 65535.0
-    times = None
-    if keep_time and "gps_time" in las.point_format.dimension_names:
-        times = np.asarray(las.gps_time, dtype=np.float64)  # for a trajectory (round 11)
-    return Cloud(points=points, colours=colours, times=times)
+    acc = VoxelAccumulator(voxel, compact_at=4 * chunk_size) if voxel > 0 else None
+    parts: list[dict[str, np.ndarray]] = []
+    n_input = 0
+    any_intensity = False
+    with laspy.open(str(path)) as fh:
+        dims = set(fh.header.point_format.dimension_names)
+        colour = {"red", "green", "blue"} <= dims
+        has_time = keep_time and "gps_time" in dims
+        for ch in fh.chunk_iterator(chunk_size):
+            n_input += len(ch)
+            cols = {
+                "points": np.c_[np.asarray(ch.x), np.asarray(ch.y), np.asarray(ch.z)].astype(np.float64, copy=False)
+            }
+            if colour:
+                rgb = np.c_[ch.red, ch.green, ch.blue].astype(np.float64)
+                rgb /= 65535.0
+                cols["colours"] = rgb
+            if "intensity" in dims:
+                inten = np.asarray(ch.intensity, dtype=np.float64) / 65535.0
+                any_intensity |= bool(inten.max(initial=0.0) > 0.0)
+                cols["intensity"] = inten
+            if has_time:
+                cols["time"] = np.asarray(ch.gps_time, dtype=np.float64)  # for a trajectory (round 11)
+            if acc is not None:
+                acc.add(cols)
+            else:
+                parts.append(cols)
+    if acc is not None:
+        cols = acc.result()
+    elif parts:
+        cols = {k: np.concatenate([p[k] for p in parts]) for k in parts[0]}
+    else:
+        cols = {"points": np.empty((0, 3))}
+    if len(cols["points"]) == 0:
+        raise ValueError(f"{path.name}: no points in the LAS file")
+    return Cloud(
+        points=cols["points"],
+        colours=cols.get("colours"),
+        intensity=cols.get("intensity") if any_intensity else None,
+        hits=cols.get("hits"),
+        times=cols.get("time"),
+        n_input=n_input,
+    )
 
 
 # ----------------------------------------------------------------------- cleaning
@@ -627,24 +699,40 @@ def decimate(cloud: Cloud, voxel: float) -> Cloud:
     return kept
 
 
-def voxel_trim(cloud: Cloud, cfg: Config = Config()) -> Cloud:
+def voxel_trim(cloud: Cloud, cfg: Config = Config(), in_place: bool = False) -> Cloud:
     """Drop returns from cells too sparse to be a surface.
 
     This is not noise removal for its own sake: 2,150 stray points in the sample
     scan are enough to seed a fake face if a projection bin happens to collect
     them. It runs before normals, because a normal estimated from noise is worse
     than no normal.
+
+    `in_place` trims `cloud` itself, one array at a time, instead of returning a
+    trimmed copy: a copy holds the whole cloud twice.
     """
     if len(cloud) == 0:
         return cloud
     lo = cloud.points.min(0)
-    idx = np.floor((cloud.points - lo) / cfg.voxel_cell).astype(np.int64)
+    # one temporary N x 3 array, worked in place (2026-11-04: the chained form held four)
+    idx = cloud.points - lo
+    idx /= cfg.voxel_cell
+    np.floor(idx, out=idx)
+    idx = idx.astype(np.int64)
     span = idx.max(0) + 1
     key = (idx[:, 0] * span[1] + idx[:, 1]) * span[2] + idx[:, 2]  # one int64 per cell: fast unique
+    del idx
     _, inv, counts = np.unique(key, return_inverse=True, return_counts=True)
+    del key
     keep = counts[inv.reshape(-1)] >= cfg.voxel_min_points
+    del inv, counts
+    dropped = int((~keep).sum())
+    if in_place:
+        if dropped:
+            cloud.keep_only(keep)
+        cloud.n_dropped += dropped
+        return cloud
     out = cloud.take(keep)
-    out.n_dropped = cloud.n_dropped + int((~keep).sum())
+    out.n_dropped = cloud.n_dropped + dropped
     return out
 
 
@@ -652,8 +740,15 @@ def estimate_normals(cloud: Cloud, radius: float = 0.10, max_nn: int = 30) -> No
     """Unit normals by local PCA. Sign is arbitrary; stage 1 only uses |n·u|."""
     import open3d as o3d
 
+    pts = cloud.points
+    # Round 24b: on map coordinates (UTM northing 8.7e6 m) Open3D's normals snap to
+    # 0/45/90/135 deg - its PCA loses the precision - and every wall direction is
+    # wrong (Longyearbyen, Anoeta, Jolastokieta). Normals do not depend on where the
+    # cloud sits, so far from the origin they are taken on a shifted copy.
+    if len(pts) and float(np.abs(pts).max()) > 1000.0:
+        pts = pts - np.floor(pts.min(0))
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(cloud.points)
+    pcd.points = o3d.utility.Vector3dVector(pts)
     pcd.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=radius, max_nn=max_nn))
     cloud.normals = np.asarray(pcd.normals, dtype=np.float64)
 

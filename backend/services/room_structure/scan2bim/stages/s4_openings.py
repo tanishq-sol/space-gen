@@ -1022,6 +1022,188 @@ def find_openings(model: Model, cfg: Config = Config()) -> dict:
     return stats
 
 
+def _wall_lines(walls: list[Wall], cfg: Config) -> list[dict]:
+    """Our walls grouped into lines: direction within `open_row_deg` and axis within
+    `open_row_offset` of the line's first wall. Each member records `sgn`, whether its own
+    along direction runs with the line's (+1) or against it (-1)."""
+    lines: list[dict] = []
+    for w in walls:
+        if w.r1 - w.r0 <= 0:
+            continue
+        u, v = np.asarray(w.unit), np.asarray(w.perp)
+        mid = w.axis_offset() * u + (w.r0 + w.r1) / 2 * v
+        for L in lines:
+            if (
+                abs((w.direction - L["dir"] + 90.0) % 180.0 - 90.0) <= cfg.open_row_deg
+                and abs(float(mid @ L["u"]) - L["off"]) <= cfg.open_row_offset
+            ):
+                L["walls"].append((w, 1.0 if float(v @ L["v"]) > 0 else -1.0))
+                break
+        else:
+            lines.append({"dir": w.direction, "u": u, "v": v, "off": w.axis_offset(), "walls": [(w, 1.0)]})
+    return lines
+
+
+def row_windows(model: Model, cfg: Config) -> dict:
+    """Windows between windows (round 23).
+
+    A facade's windows repeat. On one line of walls (`_wall_lines`), our window-like
+    openings (typed window, or unresolved with the sill at `window_sill_min` or higher)
+    give the row's width W (median of those measured in the face; the widest when all were
+    seen through, a lower bound), sill and head (medians) and its step P: the median of the
+    neighbour steps up to 1.5 x the smallest (no window skipped). A gap g between two
+    neighbours with g / P within `open_row_phase` of a whole number n (2 <= n <=
+    `open_row_max_steps`) holds n - 1 windows at even spacing: a window is added at each
+    such place no opening of ours covers, on the wall standing there, or across a gap
+    between two wall pieces with wall within `open_row_reach` on both sides (the pieces
+    are then joined, the join marked inferred). The windows are `source = "row"`,
+    `derivation = "inferred"`: the row proposes them, nothing measured them.
+
+    Measured (2026-11-03, tools/explore_window_rows.py): 11 windows on four buildings
+    (Fire Brigade 8, TUB1, TUB2, UVigo 1 each), none false; 4 of the 11 lie in gaps."""
+    stats = {"row_windows": 0, "row_windows_bridged": 0}
+    if not cfg.open_row_windows or model.levels is None or not model.walls:
+        return stats
+    floor_z = float(model.levels.floor_z)
+    for L in _wall_lines(model.walls, cfg):
+        u, v = L["u"], L["v"]
+
+        def to_line(w, r):  # a wall's own along coordinate -> the line's
+            return float((w.axis_offset() * np.asarray(w.unit) + r * np.asarray(w.perp)) @ v)
+
+        def to_wall(w, x):  # the line's along coordinate -> a wall's own
+            return float((L["off"] * u + x * v) @ np.asarray(w.perp))
+
+        members, taken = [], []
+        for w, sgn in L["walls"]:
+            for o in w.openings:
+                a, b = sorted((to_line(w, o.along0), to_line(w, o.along1)))
+                taken.append((a, b))
+                if o.kind == "window" or (o.kind == "unresolved" and o.sill_z - floor_z >= cfg.window_sill_min):
+                    members.append(((a + b) / 2, b - a, o))
+        if len(members) < 2:
+            continue
+        members.sort(key=lambda x: x[0])
+        # the row's width from openings measured in the face; a seen-through (beam) opening's
+        # width is a lower bound (beams cross only part of it), so a row of those takes the widest
+        measured = [x[1] for x in members if x[2].source != "beam"]
+        W = float(np.median(measured)) if measured else float(max(x[1] for x in members))
+        steps = [y[0] - x[0] for x, y in zip(members[:-1], members[1:]) if y[0] - x[0] >= 0.5 * W]
+        if not steps:
+            continue
+        s_min = min(steps)
+        P = float(np.median([s for s in steps if s <= 1.5 * s_min]))
+        typed = [x[2] for x in members if x[2].kind == "window"] or [x[2] for x in members]
+        sill = float(np.median([o.sill_z for o in typed]))
+        head = float(np.median([o.head_z for o in typed]))
+        slots = []
+        for x, y in zip(members[:-1], members[1:]):
+            k = (y[0] - x[0]) / P
+            n = int(round(k))
+            if 2 <= n <= cfg.open_row_max_steps and abs(k - n) <= cfg.open_row_phase:
+                slots += [x[0] + j * (y[0] - x[0]) / n for j in range(1, n)]
+        for r in sorted(slots):
+            lo, hi = r - W / 2, r + W / 2
+            if any(min(hi, b) - max(lo, a) > 0 for a, b in taken):
+                continue  # an opening of ours is there already
+            spans = [(*sorted((to_line(w, w.r0), to_line(w, w.r1))), w, s) for w, s in L["walls"]]
+            host = next((w for a, b, w, _ in spans if a - 0.05 <= lo and hi <= b + 0.05), None)
+            if host is None:
+                # between two pieces: the left one starts before the slot and ends within
+                # open_row_reach of it (or inside it), the right one the other way round
+                left = [(b, w, s) for a, b, w, s in spans if a < lo and lo - cfg.open_row_reach <= b < hi]
+                right = [(a, w, s) for a, b, w, s in spans if b > hi and lo < a <= hi + cfg.open_row_reach]
+                if not left or not right:
+                    continue
+                lb, lw, ls = max(left, key=lambda t: t[0])
+                ra, rw, rs = min(right, key=lambda t: t[0])
+                if lw is rw:
+                    continue
+                if ra > lb:  # a gap between them: join the left piece to the right one
+                    end = "r1" if ls > 0 else "r0"  # the left piece's end that faces the gap
+                    old = lw.r1 if end == "r1" else lw.r0
+                    new = to_wall(lw, ra)
+                    if end == "r1":
+                        lw.r1 = max(lw.r1, new)
+                    else:
+                        lw.r0 = min(lw.r0, new)
+                    lw.unjoined = [e for e in lw.unjoined if e != end]
+                    lw.joins[end] = Join(
+                        other=rw.id,
+                        face_offset=new,
+                        delta=new - old,
+                        new_end=new,
+                        trimmed=-abs(new - old),
+                        partner_covers=True,
+                        inferred=True,
+                    )
+                    facing = "r0" if rs > 0 else "r1"  # the right piece's end that faces the gap
+                    rw.unjoined = [e for e in rw.unjoined if e != facing]
+                    o_end = rw.r0 if facing == "r0" else rw.r1
+                    rw.joins.setdefault(facing, Join(other=lw.id, face_offset=o_end, delta=0.0, new_end=o_end))
+                    stats["row_windows_bridged"] += 1
+                    lb = ra
+                host = lw if r <= lb else rw  # the piece under the window's centre holds it
+            ha, hb = sorted((to_line(host, host.r0), to_line(host, host.r1)))
+            lo2, hi2 = max(lo, ha), min(hi, hb)
+            if hi2 - lo2 < 0.5 * W:
+                continue
+            a, b = sorted((to_wall(host, lo2), to_wall(host, hi2)))
+            o = Opening(along0=a, along1=b, sill_z=sill, head_z=head)
+            o.kind = _classify(o, floor_z, cfg)
+            if o.kind != "window":
+                continue
+            o.derivation, o.source = "inferred", "row"
+            host.openings = sorted([*host.openings, o], key=lambda q: q.along0)
+            taken.append((lo, hi))
+            stats["row_windows"] += 1
+    return stats
+
+
+def dedupe_twins(model: Model, cfg: Config) -> int:
+    """One doorway, one opening (round 22). Two walls of ours can stand on one real wall
+    (its two faces read as two one-sided walls, or a long one-sided wall running past a
+    doorway beside the wall pieces that frame it), and each then carries the same opening.
+    Openings on parallel walls (`open_twin_deg`) whose plan centres lie within
+    `open_twin_dist` and whose spans overlap are one opening: kept in this order - a typed
+    door or window before an unresolved one, one on a paired wall before a one-sided one,
+    then the one on the shorter wall (the longer is the one running past; measured on
+    TUB2, UVigo and Grainger). Returns how many were dropped."""
+    if cfg.open_twin_dist <= 0:
+        return 0
+    items = []
+    for w in model.walls:
+        for o in w.openings:
+            mid = (o.along0 + o.along1) / 2
+            c = w.axis_offset() * np.asarray(w.unit) + mid * np.asarray(w.perp)
+            rank = (o.kind == "unresolved", w.pairing != "paired", w.r1 - w.r0, w.id, o.along0)
+            items.append((rank, w, o, c))
+    items.sort(key=lambda x: x[0])
+    kept: list[tuple] = []
+    gone: set[int] = set()
+    for rank, w, o, c in items:
+        twin = False
+        for _, w2, o2, c2 in kept:
+            if w2 is w or abs((w.direction - w2.direction + 90.0) % 180.0 - 90.0) > cfg.open_twin_deg:
+                continue
+            if float(np.hypot(*(c - c2))) > cfg.open_twin_dist:
+                continue
+            # spans overlap, read along the kept opening's wall
+            v2 = np.asarray(w2.perp)
+            half = (o.along1 - o.along0) / 2
+            r_mid = float(c @ v2)
+            if min(o2.along1, r_mid + half) - max(o2.along0, r_mid - half) > 0:
+                twin = True
+                break
+        if twin:
+            gone.add(id(o))
+        else:
+            kept.append((rank, w, o, c))
+    for w in model.walls:
+        w.openings = [o for o in w.openings if id(o) not in gone]
+    return len(gone)
+
+
 def drop_seen_through(model: Model, cfg: Config) -> int:
     """Walls the scanner saw through, floor to head, over most of their length
     (round 10): a wall drawn across a doorway or open space. Dropped when
@@ -1044,4 +1226,13 @@ def run(model: Model, cfg: Config = Config()) -> None:
     stats = find_openings(model, cfg)
     if "_occluded" in stats:
         model.meta["occluded_voids"] = stats.pop("_occluded")
+    twins = dedupe_twins(model, cfg)
+    rows = row_windows(model, cfg)
+    if twins or rows["row_windows"]:
+        stats["twin_openings_dropped"] = twins
+        stats.update(rows)
+        kinds = [o.kind for w in model.walls for o in w.openings]
+        stats["openings"] = len(kinds)
+        for k, key in (("door", "doors"), ("window", "windows"), ("unresolved", "unresolved")):
+            stats[key] = sum(1 for x in kinds if x == k)
     model.meta["opening_stats"] = {**stats, **gaps, "walls_seen_through": dropped}

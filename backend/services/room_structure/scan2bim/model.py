@@ -63,6 +63,17 @@ class Cloud:
     def __len__(self) -> int:
         return len(self.points)
 
+    PER_POINT = ("points", "normals", "colours", "intensity", "hits", "scan_index", "times")
+
+    def keep_only(self, idx: np.ndarray) -> None:
+        """Keep only the points at `idx`, in place: each per-point array is replaced in
+        turn, so memory holds the cloud plus one array, not two clouds (as `take` does)."""
+        for name in self.PER_POINT:
+            a = getattr(self, name)
+            if a is not None:
+                setattr(self, name, a[idx])
+                del a
+
     def take(self, idx: np.ndarray) -> "Cloud":
         """A copy keeping only the points at `idx` (indices or a boolean mask)."""
 
