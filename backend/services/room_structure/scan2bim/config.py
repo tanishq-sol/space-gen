@@ -65,6 +65,21 @@ class Config:
     # chosen a priori: with a known station, the floor lies at least this far
     # below the instrument (tripods stand 1.0-2.2 m tall).
     floor_below_station: float = 0.5
+    # round 24, chosen after looking: a floor candidate must have a higher plane
+    # `floor_cover_rise` above it over this share of its cells, else it is ground
+    # outside (Longyearbyen 0.08, Anoeta's concourse 0.17). Chosen floors on the
+    # development set: 0.58 (Grainger) to 0.97. When no candidate passes, the rule
+    # is off (a scan with no ceiling keeps the old choice).
+    floor_min_covered: float = 0.5
+    floor_cover_rise: tuple[float, float] = (2.0, 8.0)
+    # round 27, chosen after looking (tools/explore_floor_choice.py, 11 scans, UVigo
+    # hidden): the floor is the lowest substantial candidate with walls standing on it
+    # (`walls_standing`) at least this share of the most any candidate has. Anoeta's
+    # -2.53 m pit has 0.07 of its real floor's (-1.19); Donor's garage floor 0.18 of its
+    # garage ceiling's underside (2.47, which has the ground floor's walls on it) - the
+    # thinnest margin; every other scan has one substantial candidate or keeps the
+    # lowest. 0 turns the test off.
+    floor_min_wall_share: float = 0.15
     # chosen a priori: 30 mm is the largest residual a flat floor should carry.
     level_max_rms: float = 0.030
     # derived from §4.2: a surface sloped more than this is not a level.
@@ -485,6 +500,25 @@ class Config:
     # on the hold-out UVigo cut completeness 0.640 -> 0.580 and halved its openings
     # (real walls seen through there: glass or trajectory timing). Off.
     open_beam_drop_walls: bool = False
+    # Round 22 (2026-11-03): one doorway, one opening. Openings on parallel walls (within
+    # open_twin_deg) whose centres lie within open_twin_dist (the benchmark's match radius,
+    # set a priori) and whose spans overlap are one opening (s4_openings.dedupe_twins).
+    # Measured: 7 such pairs in TUB2, FB, UVigo and Grainger, never two real ones. 0 = off.
+    open_twin_dist: float = 0.6
+    open_twin_deg: float = 5.0
+    # Round 23 (2026-11-03): windows between windows (s4_openings.row_windows). Walls on one
+    # line: direction within open_row_deg, axis within open_row_offset (a priori). A gap between
+    # two windows of ours that is a whole number (2..open_row_max_steps) of the row's step, to
+    # within open_row_phase of a step, holds the windows in between; across a gap between wall
+    # pieces only with wall within open_row_reach on both sides (a priori). open_row_phase chosen
+    # AFTER looking: 0.15 (set first) gave 8 windows, 0.25-0.40 give the same 11 on four buildings,
+    # none false (tools/explore_window_rows.py).
+    open_row_windows: bool = True
+    open_row_deg: float = 1.0
+    open_row_offset: float = 0.2
+    open_row_phase: float = 0.3
+    open_row_max_steps: int = 4
+    open_row_reach: float = 1.5
     open_beam_sensor_h: float = 1.4
     open_beam_incidence: float = 0.3
     open_beam_station_share: float = 0.2
@@ -502,6 +536,14 @@ class Config:
     storey_min_height: float = 2.2
     storey_slab_max: float = 0.6
     storey_min_wall_share: float = 0.15
+    # round 27: storeys closer than storey_min_height are told apart by the walls standing
+    # on each (vertical returns `storey_wall_band` above it, inside its footprint grown
+    # `storey_wall_reach`), not by height order; the wall test is the same count (it was
+    # the whole cloud's band, which a wall-less pit shares with the storey above it).
+    # False restores the old order (the lower floor wins, whole-cloud wall test).
+    storey_by_walls: bool = True
+    storey_wall_band: tuple[float, float] = (0.9, 1.7)
+    storey_wall_reach: float = 1.0
     # set per storey run: take the floor as the large plane nearest this height
     floor_hint: float | None = None
     # stage 3b, rooms from free space (accuracy round 4; design: s3_freespace.py).
@@ -523,6 +565,13 @@ class Config:
     room_fs_min_returns: int = 2
     # a free-space region with less than this share of ceiling over it is outdoors
     room_fs_min_ceiling_cover: float = 0.15
+    # Round 21 (2026-11-03): ... unless our walls run along this share of its outline (within
+    # room_fs_walled_reach of a wall footprint): an enclosed space whose overhead was not scanned
+    # (a courtyard or a glazed roof), kept with no ceiling height. Chosen AFTER looking (Grainger:
+    # the 74.5 m2 gallery 0.78 against 0-0.51 for its outdoor ground); UVigo's two such regions are
+    # the out-of-sample check. 0 turns it off.
+    room_fs_walled_min: float = 0.7
+    room_fs_walled_reach: float = 0.3
     # chosen a priori: a room grows at most 1 m into floor hidden under furniture
     room_fs_reach: float = 1.0
     room_fs_max_cells: int = 50_000_000
