@@ -15,3 +15,6 @@ plyfile>=1.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 ruff>=0.5.0
+# room structure engine "scan2bim" (services/room_structure/scan2bim)
+scipy>=1.11.0
+shapely>=2.0.0

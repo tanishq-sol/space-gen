@@ -15,8 +15,10 @@ import {
   getInterpretationMeta,
   openingPosition,
   wallLength,
+  wallFitLocked,
   withInterpretationMeta,
   type InterpretationMeta,
+  type WallFit,
 } from './scanConverter';
 import { nodeViews, type NodeView, type NodeViewMap } from './nodes';
 
@@ -277,6 +279,38 @@ export function verifyElement(ref: ElementRef) {
 /** Marks an element as wrong: hidden from the scene, linked masks disabled. */
 export function rejectElement(ref: ElementRef) {
   setStatus(ref, 'rejected', 'user');
+}
+
+/** The wall fit on screen, or null when the scan gave only one. */
+export function getWallFit(nodes: NodeMap): WallFit | null {
+  const outline = Object.values(nodes).find((n) => getInterpretationMeta(n)?.kind === 'outline');
+  return getInterpretationMeta(outline)?.wallFit ?? null;
+}
+
+/**
+ * Shows the walls in the other fit: Square (CAD) or As-built. A choice of fit, not a
+ * correction: nothing is marked corrected. The outline and room follow the corners. Once
+ * a wall or the outline was edited the edit is the room and the fit no longer switches.
+ */
+export function setWallFit(fit: WallFit) {
+  const batch = new Batch();
+  if (wallFitLocked(batch.nodes)) throw new Error('The walls were edited, so they stay as edited.');
+  const moves: Array<{ from: Point2D; to: Point2D }> = [];
+  for (const wall of interpretedNodes(batch, 'wall')) {
+    const meta = getInterpretationMeta(wall)!;
+    if (!meta.fits) continue;
+    const [start, end] = meta.fits[fit];
+    moves.push({ from: pt(wall.start), to: pt(start) }, { from: pt(wall.end), to: pt(end) });
+    batch.patch(wall.id, { start: pt(start), end: pt(end) });
+  }
+  const target = (p: Point2D) => moves.find((m) => samePoint(m.from, p))?.to;
+  for (const kind of ['outline', 'zone'] as const) {
+    for (const poly of interpretedNodes(batch, kind)) {
+      batch.patch(poly.id, { polygon: (poly.polygon as Point2D[]).map((p) => [...(target(p) || p)]) });
+      if (kind === 'outline') batch.mark(poly.id, { wallFit: fit });
+    }
+  }
+  batch.commit();
 }
 
 export function moveOutlineVertex(slabId: string, index: number, to: Point2D) {

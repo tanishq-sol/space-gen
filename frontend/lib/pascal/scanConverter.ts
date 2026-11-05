@@ -41,6 +41,24 @@ export interface InterpretationMeta {
   floor?: RoomInterpretation['floor'];
   ceilingHeight?: number;
   roomProvenance?: Provenance;
+  /** Outline only: which wall fit the walls show, when the scan gave both. */
+  wallFit?: WallFit;
+  /** Wall only: RMS distance of the scan points from the wall's surface (cm) and share of it seen. */
+  rmseCm?: number | null;
+  inlierRatio?: number | null;
+  /** Wall only: its [start, end] in each fit, when the scan gave a Square (CAD) fit. */
+  fits?: Record<WallFit, [Point2D, Point2D]>;
+}
+
+/** As-built: walls where the scan put them. Square (CAD): walls within 3 deg of 0/45/90 squared. */
+export type WallFit = 'asBuilt' | 'square';
+
+/** True once a wall or the outline was corrected: the edit is the room, the fit no longer switches. */
+export function wallFitLocked(nodes: NodeMap): boolean {
+  return Object.values(nodes).some((n) => {
+    const meta = getInterpretationMeta(n);
+    return (meta?.kind === 'wall' || meta?.kind === 'outline') && meta.status === 'corrected';
+  });
 }
 
 type NodeMap = NodeViewMap;
@@ -167,6 +185,7 @@ export function planInterpretationNodes(
           status: outlineStatus,
           floor: interpretation.floor,
           ceilingHeight: interpretation.ceilingHeight,
+          ...(interpretation.wallsSquare?.length ? { wallFit: 'asBuilt' as const } : {}),
         } satisfies InterpretationMeta,
       },
     }),
@@ -196,10 +215,12 @@ export function planInterpretationNodes(
 
   const wallIds: Record<string, string> = {};
   const wallLengths: Record<string, number> = {};
+  const squareFit = new Map((interpretation.wallsSquare || []).map((w) => [w.id, w]));
   for (const wall of interpretation.walls) {
     const id = prefixedId('wall', wall.id);
     const start: Point2D = [wall.start[0], wall.start[2]];
     const end: Point2D = [wall.end[0], wall.end[2]];
+    const square = squareFit.get(wall.id);
     wallIds[wall.id] = id;
     wallLengths[wall.id] = wallLength(start, end);
     creates.push({
@@ -219,6 +240,11 @@ export function planInterpretationNodes(
             confidence: wall.confidence,
             provenance: wall.provenance,
             status: wall.status || 'auto',
+            ...(wall.rmseCm != null ? { rmseCm: wall.rmseCm } : {}),
+            ...(wall.inlierRatio != null ? { inlierRatio: wall.inlierRatio } : {}),
+            ...(square
+              ? { fits: { asBuilt: [start, end], square: [[square.start[0], square.start[2]], [square.end[0], square.end[2]]] } }
+              : {}),
           } satisfies InterpretationMeta,
         },
       }),
@@ -313,6 +339,9 @@ function round(value: number): number {
   return Math.round(value * 1e6) / 1e6;
 }
 
+const at3 = (p: Point2D): [number, number, number] => [round(p[0]), 0, round(p[1])];
+const pointKey = (p: Point2D) => `${round(p[0])},${round(p[1])}`;
+
 /** Rebuilds the RoomInterpretation contract from Pascal nodes, including user corrections. */
 export function deriveInterpretationFromScene(nodes: NodeMap, base?: RoomInterpretation): RoomInterpretation | null {
   const all = Object.values(nodes).filter((n): n is NodeView => Boolean(n));
@@ -321,8 +350,13 @@ export function deriveInterpretationFromScene(nodes: NodeMap, base?: RoomInterpr
   const outlineMeta = getInterpretationMeta(outlineNode)!;
 
   const walls: WallInterpretation[] = [];
+  const wallsSquare: WallInterpretation[] = [];
+  const asBuiltCorner = new Map<string, Point2D>(); // a squared corner on screen -> its as-built place
   const openings: OpeningInterpretation[] = [];
   let anyUser = outlineMeta.provenance === 'user';
+  // Until the walls are edited both fits are kept and `walls` is the as-built one, whichever
+  // is on screen; after an edit the scene as edited is the room.
+  const twoFits = Boolean(outlineMeta.wallFit) && !wallFitLocked(nodes);
 
   for (const node of all) {
     const meta = getInterpretationMeta(node);
@@ -330,16 +364,24 @@ export function deriveInterpretationFromScene(nodes: NodeMap, base?: RoomInterpr
     if (meta.provenance === 'user') anyUser = true;
     if (meta.kind === 'wall' && node.type === 'wall') {
       const height = node.height ?? outlineMeta.ceilingHeight ?? 2.5;
-      walls.push({
+      const fit = twoFits && meta.fits ? meta.fits : null;
+      const wall: WallInterpretation = {
         id: meta.sourceId,
-        start: [round(node.start[0]), 0, round(node.start[1])],
-        end: [round(node.end[0]), 0, round(node.end[1])],
+        start: at3(fit ? fit.asBuilt[0] : node.start),
+        end: at3(fit ? fit.asBuilt[1] : node.end),
         height,
         thickness: node.thickness ?? 0.2,
         confidence: meta.confidence,
         provenance: meta.provenance,
         status: meta.status,
-      });
+        ...(meta.rmseCm != null ? { rmseCm: meta.rmseCm } : {}),
+        ...(meta.inlierRatio != null ? { inlierRatio: meta.inlierRatio } : {}),
+      };
+      walls.push(wall);
+      if (fit) wallsSquare.push({ ...wall, start: at3(fit.square[0]), end: at3(fit.square[1]) });
+      if (fit && outlineMeta.wallFit === 'square') {
+        fit.square.forEach((p, k) => asBuiltCorner.set(pointKey(p), fit.asBuilt[k]));
+      }
     }
   }
 
@@ -373,9 +415,13 @@ export function deriveInterpretationFromScene(nodes: NodeMap, base?: RoomInterpr
     provenance: anyUser ? 'user' : outlineMeta.roomProvenance || base?.provenance || 'auto',
     floor: outlineMeta.floor || base?.floor || { normal: [0, 1, 0], constant: 0, provenance: 'auto' },
     ceilingHeight: outlineMeta.ceilingHeight || base?.ceilingHeight || 2.5,
-    outline: (outlineNode.polygon || []).map((p: Point2D) => [round(p[0]), round(p[1])] as Point2D),
+    outline: (outlineNode.polygon || []).map((p: Point2D) => {
+      const q = asBuiltCorner.get(pointKey(p)) ?? p;
+      return [round(q[0]), round(q[1])] as Point2D;
+    }),
     outlineStatus: outlineMeta.status,
     walls,
+    ...(twoFits && wallsSquare.length === walls.length ? { wallsSquare } : {}),
     openings,
     detections,
   };

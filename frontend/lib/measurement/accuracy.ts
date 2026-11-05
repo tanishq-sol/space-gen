@@ -45,3 +45,11 @@ export function formatDimensions(dims: readonly number[], scaleSource: ScaleSour
   const err = errorCm(Math.max(...dims.map(Math.abs)), scaleSource, table);
   return `≈ ${dims.map((d) => value(d, err)).join(' × ')} m (±${err} cm est.)`;
 }
+
+/** "Surface fit ±0.8 cm · seen along 92%": how closely a wall's scan points lie on it, and how much of it was seen. */
+export function formatWallFit(rmseCm?: number | null, inlierRatio?: number | null): string | null {
+  const parts: string[] = [];
+  if (rmseCm != null) parts.push(`Surface fit ±${rmseCm < 10 ? rmseCm.toFixed(1) : Math.round(rmseCm)} cm`);
+  if (inlierRatio != null) parts.push(`seen along ${Math.round(inlierRatio * 100)}%`);
+  return parts.length ? parts.join(' · ') : null;
+}

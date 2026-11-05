@@ -113,6 +113,12 @@ class WallInterpretation(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     provenance: Provenance
     status: Optional[DetectionStatus] = None
+    rmseCm: Optional[float] = Field(
+        default=None, ge=0.0, description="RMS distance of the scan points on this wall from its surface, in cm."
+    )
+    inlierRatio: Optional[float] = Field(
+        default=None, ge=0.0, le=1.0, description="Share of the wall's length with scan points on its surface."
+    )
 
 
 class OpeningInterpretation(BaseModel):
@@ -149,6 +155,10 @@ class RoomInterpretation(BaseModel):
     outline: List[Point2D]
     outlineStatus: Optional[DetectionStatus] = None
     walls: List[WallInterpretation]
+    wallsSquare: Optional[List[WallInterpretation]] = Field(
+        default=None,
+        description="The walls (same ids) with directions within 3 degrees of 0/45/90 snapped: the Square (CAD) fit.",
+    )
     openings: List[OpeningInterpretation]
     detections: List[DetectionInterpretation]
 

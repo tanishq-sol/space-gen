@@ -11,10 +11,14 @@ import numpy as np
 from gpu_worker.cameras import room_cameras
 from gpu_worker.mesh import export_glb, finalize, tsdf_mesh
 from gpu_worker.render import Renderer
-from gpu_worker.segment import segment, shell_prior
+from gpu_worker.segment import segment, shell_prior, without_shell
 from gpu_worker.shell import bake_floor, bake_wall
 from gpu_worker.splat import Splat
 from services.object_detection.detectors import Detector2D, Keyframe
+from services.object_detection.geometry import fit_obb
+
+# An object whose bottom ends within this of the floor rests on it (fit_obb's floor snap).
+FLOOR_SNAP = 0.1
 
 DEFAULT_LABELS = ("sofa", "armchair", "chair", "table", "desk", "bed", "lamp", "cabinet", "shelf", "tv", "plant", "rug")
 
@@ -58,10 +62,19 @@ def run_pipeline(
 
     objects = []
     for j, inst in enumerate(seg.instances):
+        # Mesh only the object: floor and wall Gaussians baked into it give a sofa a slab of
+        # floor or a strip of wall, and floaters under the floor sank objects to y ~ -0.4. The
+        # stored indices (the object's splat mask) leave that shell visible as well.
+        inst.indices = without_shell(splat, inst.indices, interpretation)
+        if len(inst.indices) < 30:
+            continue
+        inst.obb = fit_obb(splat.means[inst.indices])
         # Furniture is never under ~20 cm on its longest side; smaller clusters were noise on the first real scan.
         if max(inst.obb["size"]) < min_object_size:
             continue
         mesh = finalize(tsdf_mesh(splat.subset(inst.indices), inst.obb, renderer), inst.obb["yaw"], target_triangles)
+        if mesh.position[1] < FLOOR_SNAP:  # it stands on the floor, never below it
+            mesh.position = (mesh.position[0], 0.0, mesh.position[2])
         export_glb(mesh, out_dir / f"{inst.id}.glb")
         inst.indices.astype("<u4").tofile(out_dir / f"{inst.id}.idx.u32")
         w, h, d = mesh.dimensions

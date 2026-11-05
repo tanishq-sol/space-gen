@@ -260,3 +260,111 @@ def test_colmap_points_loaders(tmp_path):
 def test_service_does_not_require_open3d():
     code = "import sys, services.room_structure; assert 'open3d' not in sys.modules"
     subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1], check=True)
+
+
+def test_scan2bim_engine_checks_every_wall_of_a_synthetic_room():
+    scene, result, _ = _run("rectangle")
+    diag = result.diagnostics
+    assert diag["engine"] == "scan2bim"
+    assert diag["scan2bim"]["wallsMatched"] == len(result.interpretation.walls)
+
+
+def test_legacy_engine_is_still_available_and_unknown_engines_fail():
+    scene = make_room(**CASES["rectangle"])
+    legacy = analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="legacy"))
+    assert "engine" not in legacy.diagnostics and len(legacy.interpretation.walls) == 4
+    with pytest.raises(RoomStructureError):
+        analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="nope"))
+
+
+def test_scan2bim_failure_falls_back_to_the_legacy_result(monkeypatch):
+    from services.room_structure.scan2bim import pipeline
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("stage failed")
+
+    monkeypatch.setattr(pipeline, "run_pipeline", boom)
+    scene = make_room(**CASES["rectangle"])
+    result = analyze_room(scene.positions, scene.opacity)
+    assert len(result.interpretation.walls) == 4
+    assert any("legacy walls kept" in n for n in result.diagnostics["notes"])
+
+
+def _room_with_a_sofa(seed: int = 7):
+    """The rectangle with a 2.4 x 0.9 m sofa against its far wall (z = 2): the floor
+    behind and under it is not scanned, so the floor outline takes a bite there."""
+    scene = make_room(polygon=RECTANGLE, openings=[DOOR], seed=seed, rotate=False)
+    p = scene.positions - scene.translation
+    under = (np.abs(p[:, 0] - 0.5) < 1.2) & (p[:, 2] > 1.1) & (p[:, 2] < 1.98) & (p[:, 1] < 0.1)
+    rng = np.random.default_rng(seed)
+    sofa = rng.uniform([-0.7, 0.0, 1.1], [1.7, 0.8, 1.98], size=(6000, 3))
+    face = rng.integers(0, 3, len(sofa))
+    lo, hi = np.array([-0.7, 0.0, 1.1]), np.array([1.7, 0.8, 1.98])
+    side = np.where(face == 1, 1, rng.integers(0, 2, len(sofa)))  # no bottom face: no floor under it
+    sofa[np.arange(len(sofa)), face] = np.where(side, hi[face], lo[face])
+    scene.positions = np.concatenate([p[~under], sofa]) + scene.translation
+    scene.opacity = np.concatenate([scene.opacity[~under], np.full(len(sofa), 0.9)])
+    return scene
+
+
+def test_outline_is_rebuilt_from_wall_lines_where_furniture_hides_the_floor():
+    scene = _room_with_a_sofa()
+    legacy = analyze_room(scene.positions, scene.opacity, None, RoomStructureOptions(engine="legacy"))
+    assert len(legacy.interpretation.walls) > 4  # the floor outline takes a bite behind the sofa
+    result = analyze_room(scene.positions, scene.opacity)
+    interp = result.interpretation
+    assert result.diagnostics["outline"]["regularization"]["kept"] == "regularized"
+    assert len(interp.walls) == len(interp.outline) == 4
+    acc = evaluate(scene, result)
+    assert acc.walls_matched == acc.walls_expected, acc
+    assert acc.max_corner_error_cm < 10.0
+    assert acc.openings_matched == acc.openings_expected  # the door moved to the rebuilt wall
+    walls = {w.id for w in interp.walls}
+    assert all(o.wallId in walls for o in interp.openings)
+
+
+def test_every_wall_reports_its_surface_fit_and_coverage():
+    # the synthetic rectangle's surfaces carry 1 cm noise; the door takes 0.9 m out of wall 0's band
+    interp = _run("rectangle")[1].interpretation
+    assert all(0.5 < w.rmseCm < 2.0 for w in interp.walls), [w.rmseCm for w in interp.walls]
+    assert all(w.inlierRatio >= 0.75 for w in interp.walls), [w.inlierRatio for w in interp.walls]
+    assert interp.wallsSquare is not None and [w.id for w in interp.wallsSquare] == [w.id for w in interp.walls]
+
+
+def _quad(points):
+    from models.contracts import WallInterpretation
+
+    return [
+        WallInterpretation(
+            id=f"wall_{i}",
+            start=(a[0], 0.0, a[1]),
+            end=(b[0], 0.0, b[1]),
+            height=2.6,
+            thickness=0.1,
+            confidence=0.9,
+            provenance="auto",
+        )
+        for i, (a, b) in enumerate(zip(points, points[1:] + points[:1]))
+    ]
+
+
+def test_square_fit_turns_near_square_walls_and_leaves_the_rest():
+    from services.room_structure.analyzer import square_walls
+
+    lean = 4.0 * np.tan(np.radians(2.0))  # the right wall leans 2 degrees
+    walls = _quad([(-2.5, -2.0), (2.5, -2.0), (2.5 + lean, 2.0), (-2.5, 2.0)])
+    square = square_walls(walls)
+    assert square is not None and [w.id for w in square] == [w.id for w in walls]
+    for w in square:
+        d = np.subtract(w.end, w.start)[[0, 2]]
+        assert min(abs(d[0]), abs(d[1])) < 1e-9  # every wall on an axis
+    corners = np.array([w.start for w in square])[:, [0, 2]]
+    assert np.abs(corners - np.array([w.start for w in walls])[:, [0, 2]]).max() < 0.25
+
+    lean = 4.0 * np.tan(np.radians(10.0))  # 10 degrees is a slanted wall, not a crooked one
+    walls = _quad([(-2.5, -2.0), (2.5, -2.0), (2.5 + lean, 2.0), (-2.5, 2.0)])
+    right = square_walls(walls)[1]
+    assert right.end == pytest.approx(walls[1].end) and right.start == pytest.approx(walls[1].start)
+
+    lean = 20.0 * np.tan(np.radians(2.0))  # a 20 m wall: squaring moves a corner 0.35 m
+    assert square_walls(_quad([(-2.5, -10.0), (2.5, -10.0), (2.5 + lean, 10.0), (-2.5, 10.0)])) is None

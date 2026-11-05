@@ -31,6 +31,10 @@ export const WallInterpretationSchema = z.object({
   confidence: z.number().min(0).max(1),
   provenance: ProvenanceSchema,
   status: DetectionStatusSchema.nullable().optional(),
+  /** RMS distance of the scan points on this wall from its surface, in cm. */
+  rmseCm: z.number().nonnegative().nullable().optional(),
+  /** Share of the wall's length with scan points on its surface. */
+  inlierRatio: z.number().min(0).max(1).nullable().optional(),
 });
 export type WallInterpretation = z.infer<typeof WallInterpretationSchema>;
 
@@ -77,6 +81,8 @@ export const RoomInterpretationSchema = z.object({
   outline: z.array(Point2DSchema),
   outlineStatus: DetectionStatusSchema.nullable().optional(),
   walls: z.array(WallInterpretationSchema),
+  /** The walls (same ids) with directions within 3 degrees of 0/45/90 snapped: the Square (CAD) fit. */
+  wallsSquare: z.array(WallInterpretationSchema).nullable().optional(),
   openings: z.array(OpeningInterpretationSchema),
   detections: z.array(DetectionInterpretationSchema),
 });

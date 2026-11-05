@@ -7,6 +7,7 @@ import {
   applyInterpretationToScene,
   getInterpretationMeta,
   hasInterpretationNodes,
+  wallFitLocked,
   wallLength,
 } from '@/lib/pascal/scanConverter';
 import {
@@ -16,6 +17,7 @@ import {
   getDetections,
   getReviewItems,
   getTrustedInterpretation,
+  getWallFit,
   LOW_CONFIDENCE,
   moveOutlineVertex,
   moveWall,
@@ -24,12 +26,14 @@ import {
   removeOpening,
   resizeOpening,
   setWallEndpoints,
+  setWallFit,
   splitWall,
   updateDetectionBox,
   verifyElement,
   type ReviewItem,
 } from '@/lib/pascal/interpretationReview';
 import { nodeViews, type NodeView, type NodeViewMap } from '@/lib/pascal/nodes';
+import { formatWallFit } from '@/lib/measurement/accuracy';
 
 type NodeMap = NodeViewMap;
 type DragTarget = { kind: 'wall' | 'detection'; id: string } | { kind: 'vertex'; id: string; index: number };
@@ -90,6 +94,7 @@ export function InterpretationReviewPanel({ interpretation, scan, maskRegions }:
           <p role="status" className="mt-1 text-success">All scan elements reviewed.</p>
         )}
         <Legend />
+        <WallFitToggle nodes={nodes} run={run} />
       </div>
       <PlanView nodes={nodes} selectedKey={selectedKey} onSelect={setSelectedKey} run={run} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -405,11 +410,43 @@ function TextField({ label, value, onCommit }: { label: string; value: string; o
   );
 }
 
+/** Square (CAD) or As-built walls, when the scan gave both fits. */
+function WallFitToggle({ nodes, run }: { nodes: NodeMap; run: (fn: () => void) => void }) {
+  const fit = getWallFit(nodes);
+  if (!fit) return null;
+  const locked = wallFitLocked(nodes);
+  const option = (value: 'square' | 'asBuilt', label: string) => (
+    <button
+      aria-pressed={fit === value}
+      disabled={locked}
+      title={locked ? 'The walls were edited, so they stay as edited.' : undefined}
+      className={`rounded border px-2 py-1 disabled:opacity-40 ${fit === value ? 'border-accent text-accent' : 'border-border hover:border-accent'}`}
+      onClick={() => fit !== value && run(() => setWallFit(value))}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div role="group" aria-label="Wall fit" className="mt-2 flex items-center gap-2">
+      <span className="text-text-muted">Walls</span>
+      {option('square', 'Square (CAD)')}
+      {option('asBuilt', 'As-built')}
+    </div>
+  );
+}
+
 function WallFields({ node, run }: { node?: NodeView; run: (fn: () => void) => void }) {
   if (!node) return null;
   const set = (start: Point2D, end: Point2D) => run(() => setWallEndpoints(node.id, start, end));
+  const meta = getInterpretationMeta(node);
+  const fitText = formatWallFit(meta?.rmseCm, meta?.inlierRatio);
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+      {fitText && (
+        <p data-testid="wall-fit" className="col-span-2 text-text-muted">
+          {fitText}
+        </p>
+      )}
       <NumberField label="Wall start X" value={node.start[0]} onCommit={(v) => set([v, node.start[1]], node.end)} />
       <NumberField label="Wall start Z" value={node.start[1]} onCommit={(v) => set([node.start[0], v], node.end)} />
       <NumberField label="Wall end X" value={node.end[0]} onCommit={(v) => set(node.start, [v, node.end[1]])} />
